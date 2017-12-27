@@ -11,6 +11,7 @@ import com.mygdx.game.MyGdxGame;
 import com.mygdx.game.Player;
 
 import java.net.Socket;
+import java.nio.channels.SocketChannel;
 
 /**
  * Created by Pawel on 03.12.2017.
@@ -35,7 +36,7 @@ public class PlayState extends State {
 
 
 
-    public PlayState(GameStateManager gsm, SpriteBatch batch, Socket sock) {
+    public PlayState(GameStateManager gsm, SpriteBatch batch, SocketChannel sock) {
 
         super(gsm,batch,sock);
         font = new BitmapFont();

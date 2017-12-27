@@ -117,6 +117,7 @@ project(":core") {
     dependencies {
         compile "com.badlogicgames.gdx:gdx:$gdxVersion"
         compile "com.badlogicgames.gdx:gdx-box2d:$gdxVersion"
+        compile 'commons-io:commons-io:2.6'
 
     }
 }

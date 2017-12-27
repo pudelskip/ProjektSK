@@ -20,8 +20,19 @@ import com.mygdx.game.MyGdxGame;
 
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.StringWriter;
+import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
+import java.nio.channels.SocketChannel;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Iterator;
+
+import org.apache.commons.io.IOUtils;
+
 
 
 /**
@@ -32,10 +43,12 @@ public class MenuState extends State {
 
     String status;
     TextActor text;
-
+    Skin skin;
     Table playerList;
     Table menuTable;
     boolean isConnecting;
+
+
 
 
     public class MyActor extends Actor {
@@ -97,10 +110,10 @@ public class MenuState extends State {
     }
 
 
-    public MenuState(GameStateManager gsm, SpriteBatch sb, Socket sock){
+    public MenuState(GameStateManager gsm, SpriteBatch sb, SocketChannel sock){
         super(gsm,sb,sock);
         Gdx.input.setInputProcessor(stage);
-        Skin skin = new Skin(Gdx.files.internal("data/uiskin.json"));
+        skin = new Skin(Gdx.files.internal("data/uiskin.json"));
 
         ConnectButton connectButton = new ConnectButton();
         connectButton.setTouchable(Touchable.enabled);
@@ -111,6 +124,7 @@ public class MenuState extends State {
 
         this.status = "Rozłączono";
         this.isConnecting=false;
+
         text = new TextActor(status);
 
         stage.addActor(text);
@@ -124,16 +138,10 @@ public class MenuState extends State {
 
         menuTable.add(playerList).expand().top().left().pad(100.0f,20.0f,100.0f,600.0f);
 
-        Label gr1 = new Label("GRACZ1",skin);
-        gr1.setFontScale(2.0f);
-
-        playerList.add(gr1).bottom().padTop(10.0f);
-        playerList.row();
-        playerList.add(gr1).right().padTop(10.0f);
 
 
 
-      //(new String[]{"fsd","fsdf","fsdfdsdfdf"});
+
 
     }
 
@@ -154,6 +162,12 @@ public class MenuState extends State {
     public void update(float deltaTime) {
         text.setText(status);
         handleInput();
+        if(sock !=null)
+            if(sock.isConnected())
+                readServer();
+
+
+
     }
 
     @Override
@@ -180,12 +194,18 @@ public class MenuState extends State {
         new Thread(new Runnable() {
             @Override
             public void run() {
+
+
                 // do something important here, asynchronously to the rendering thread
                 try {
+                    sel= Selector.open();
+                    sock=SocketChannel.open(new InetSocketAddress("192.168.0.110",22222));
+                    sock.configureBlocking(false);
+                    sockKey = sock.register(sel, SelectionKey.OP_READ);
 
-                    sock = new Socket("127.0.0.1",22222);
                     text.setColor(0.0f,1.0f,0.0f,1.0f);
                     status="Połączono";
+
                 } catch (IOException e) {
                     text.setColor(1.0f,0.0f,0.0f,1.0f);
                     status="Błąd: "+e.getMessage();
@@ -202,6 +222,40 @@ public class MenuState extends State {
                 });*/
             }
         }).start();
+        }
+    }
+
+    private void readServer(){
+
+
+        try {
+            sel.select();
+            if(sel.selectedKeys().size() == 1 && sel.selectedKeys().iterator().next() == sockKey){
+
+                bb.clear();
+                int count = sock.read(bb);
+                if(count == -1) {
+                    sockKey.cancel();
+                    return;
+                }
+
+                sel.selectedKeys().clear();
+                String result= new String(bb.array(), "UTF-8");
+                players.clear();
+                for(String name: result.split(";")){
+                    players.add(name);
+                }
+                playerList.clear();
+                for(String player: players){
+                    Label placeholder = new Label("->   "+player,skin);
+                    placeholder.setFontScale(2.0f);
+                    playerList.add(placeholder).bottom().padTop(10.0f).padLeft(20.0f);
+                    playerList.row();
+                }
+            }
+        } catch (Throwable e) {
+            e.printStackTrace();
+            //todo exception handling
         }
     }
 }

@@ -10,7 +10,7 @@ import com.mygdx.game.states.GameStateManager;
 import com.mygdx.game.states.MenuState;
 
 import java.net.Socket;
-
+import java.nio.channels.SocketChannel;
 
 
 public class MyGdxGame extends ApplicationAdapter {
@@ -20,10 +20,9 @@ public class MyGdxGame extends ApplicationAdapter {
 
     private GameStateManager gsm;
 	SpriteBatch batch;
-	Texture img;
-    Player player;
-    Socket sock=null;
-    String s ="aaa";
+	SocketChannel sock=null;
+
+   
 
 
 	@Override
