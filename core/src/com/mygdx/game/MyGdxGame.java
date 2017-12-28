@@ -22,7 +22,7 @@ public class MyGdxGame extends ApplicationAdapter {
 	SpriteBatch batch;
 	SocketChannel sock=null;
 
-   
+
 
 
 	@Override

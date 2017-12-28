@@ -9,6 +9,7 @@ import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.InputListener;
 import com.badlogic.gdx.scenes.scene2d.Touchable;
+import com.badlogic.gdx.scenes.scene2d.actions.Actions;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.List;
 import com.badlogic.gdx.scenes.scene2d.ui.Dialog;
@@ -48,7 +49,8 @@ public class MenuState extends State {
     Table menuTable;
     boolean isConnecting;
 
-
+    ConnectButton connectButton;
+    RdyButton rdyBottun;
 
 
     public class MyActor extends Actor {
@@ -89,10 +91,10 @@ public class MenuState extends State {
         Texture texture;
         float actorX,actorY;
 
-        public ConnectButton() {
+        public ConnectButton(Texture tex) {
             actorX=1000;
             actorY=600;
-            texture= new Texture("connect.png");
+            texture= tex;
             setBounds(actorX,actorY,texture.getWidth(),texture.getHeight());
             addListener(new InputListener(){
                 public boolean touchDown (InputEvent event, float x, float y, int pointer, int button) {
@@ -110,12 +112,39 @@ public class MenuState extends State {
     }
 
 
+    private class RdyButton extends Actor{
+
+
+        Texture texture;
+        float actorX,actorY;
+
+        public RdyButton(Texture tex) {
+            actorX=1000;
+            actorY=600;
+            texture= tex;
+            setBounds(actorX,actorY,texture.getWidth(),texture.getHeight());
+            addListener(new InputListener(){
+                public boolean touchDown (InputEvent event, float x, float y, int pointer, int button) {
+                   actorX=500;
+                    return true;
+                }
+            });
+        }
+
+        @Override
+        public void draw(Batch batch, float alpha){
+            batch.draw(texture,actorX,actorY);
+        }
+
+    }
+
     public MenuState(GameStateManager gsm, SpriteBatch sb, SocketChannel sock){
         super(gsm,sb,sock);
         Gdx.input.setInputProcessor(stage);
         skin = new Skin(Gdx.files.internal("data/uiskin.json"));
 
-        ConnectButton connectButton = new ConnectButton();
+        connectButton = new ConnectButton(new Texture("conn.png"));
+        rdyBottun = new RdyButton(new Texture("rdy1.png"));
         connectButton.setTouchable(Touchable.enabled);
 
         menuTable = new Table(skin);
@@ -155,6 +184,7 @@ public class MenuState extends State {
             //Dialog d = new Dialog("title",skin);
             //d.show(stage);
 //            dispose();
+
         }
     }
 
@@ -195,8 +225,6 @@ public class MenuState extends State {
             @Override
             public void run() {
 
-
-                // do something important here, asynchronously to the rendering thread
                 try {
                     sel= Selector.open();
                     sock=SocketChannel.open(new InetSocketAddress("192.168.0.110",22222));
@@ -204,6 +232,9 @@ public class MenuState extends State {
                     sockKey = sock.register(sel, SelectionKey.OP_READ);
 
                     text.setColor(0.0f,1.0f,0.0f,1.0f);
+
+                    connectButton.remove();
+                    stage.addActor(rdyBottun);
                     status="Połączono";
 
                 } catch (IOException e) {
@@ -229,6 +260,7 @@ public class MenuState extends State {
 
 
         try {
+
             sel.select();
             if(sel.selectedKeys().size() == 1 && sel.selectedKeys().iterator().next() == sockKey){
 
@@ -243,7 +275,7 @@ public class MenuState extends State {
                 String result= new String(bb.array(), "UTF-8");
                 players.clear();
                 for(String name: result.split(";")){
-                    players.add(name);
+                   if(name!="") players.add(name);
                 }
                 playerList.clear();
                 for(String player: players){
