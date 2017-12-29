@@ -9,31 +9,16 @@ import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.InputListener;
 import com.badlogic.gdx.scenes.scene2d.Touchable;
-import com.badlogic.gdx.scenes.scene2d.actions.Actions;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
-import com.badlogic.gdx.scenes.scene2d.ui.List;
-import com.badlogic.gdx.scenes.scene2d.ui.Dialog;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
-
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
-import com.badlogic.gdx.scenes.scene2d.ui.TextField;
-import com.mygdx.game.MyGdxGame;
-
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.StringWriter;
 import java.net.InetSocketAddress;
-import java.net.Socket;
+import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Iterator;
-
-import org.apache.commons.io.IOUtils;
-
 
 
 /**
@@ -41,17 +26,18 @@ import org.apache.commons.io.IOUtils;
  */
 
 public class MenuState extends State {
-
+    int as=0;
     String status;
     TextActor text;
     Skin skin;
     Table playerList;
     Table menuTable;
     boolean isConnecting;
+    boolean ready;
 
     ConnectButton connectButton;
     RdyButton rdyBottun;
-
+    RdyButton rdyBottun2;
 
     public class MyActor extends Actor {
         Texture texture = new Texture("board.png");
@@ -125,7 +111,7 @@ public class MenuState extends State {
             setBounds(actorX,actorY,texture.getWidth(),texture.getHeight());
             addListener(new InputListener(){
                 public boolean touchDown (InputEvent event, float x, float y, int pointer, int button) {
-                   actorX=500;
+                    setReady();
                     return true;
                 }
             });
@@ -138,6 +124,8 @@ public class MenuState extends State {
 
     }
 
+
+
     public MenuState(GameStateManager gsm, SpriteBatch sb, SocketChannel sock){
         super(gsm,sb,sock);
         Gdx.input.setInputProcessor(stage);
@@ -145,6 +133,7 @@ public class MenuState extends State {
 
         connectButton = new ConnectButton(new Texture("conn.png"));
         rdyBottun = new RdyButton(new Texture("rdy1.png"));
+        rdyBottun2 = new RdyButton(new Texture("rdy2.png"));
         connectButton.setTouchable(Touchable.enabled);
 
         menuTable = new Table(skin);
@@ -153,6 +142,7 @@ public class MenuState extends State {
 
         this.status = "Rozłączono";
         this.isConnecting=false;
+        this.ready=false;
 
         text = new TextActor(status);
 
@@ -177,7 +167,7 @@ public class MenuState extends State {
     @Override
     public void handleInput() {
         if(Gdx.input.justTouched()){
-            //tryConnectAsync();
+
             //gameStateManager.push(new PlayState(gameStateManager,batch,sock));
 
             //Skin skin = new Skin(Gdx.files.internal("data/uiskin.json"));
@@ -192,9 +182,13 @@ public class MenuState extends State {
     public void update(float deltaTime) {
         text.setText(status);
         handleInput();
+        as+=1;
+
         if(sock !=null)
-            if(sock.isConnected())
+            if(sock.isConnected()){
+
                 readServer();
+        }
 
 
 
@@ -208,6 +202,7 @@ public class MenuState extends State {
     @Override
     public void dispose() {
         stage.dispose();
+
         try {
             sock.close();
         } catch (IOException e) {
@@ -261,7 +256,7 @@ public class MenuState extends State {
 
         try {
 
-            sel.select();
+            sel.selectNow();
             if(sel.selectedKeys().size() == 1 && sel.selectedKeys().iterator().next() == sockKey){
 
                 bb.clear();
@@ -274,20 +269,63 @@ public class MenuState extends State {
                 sel.selectedKeys().clear();
                 String result= new String(bb.array(), "UTF-8");
                 players.clear();
+
                 for(String name: result.split(";")){
-                   if(name!="") players.add(name);
+                    boolean status=false;
+                   //if(!name.equals("")) players.add(new PlayerEntry(name.substring(0,name.length()-1),parseBoolean(name.substring(name.length()-2))));
+                    if(name.substring(name.length()-1).equals("1"))
+                        status=true;
+                    if(!name.equals("")) players.add(new PlayerEntry(name.substring(0,name.length()-1),status));
                 }
-                playerList.clear();
-                for(String player: players){
-                    Label placeholder = new Label("->   "+player,skin);
-                    placeholder.setFontScale(2.0f);
-                    playerList.add(placeholder).bottom().padTop(10.0f).padLeft(20.0f);
-                    playerList.row();
-                }
+                showPlayersList();
+
             }
         } catch (Throwable e) {
             e.printStackTrace();
             //todo exception handling
+        }
+    }
+
+    private void setReady() {
+        if(!ready){
+            try {
+                String msg="ready";
+                sock.write(ByteBuffer.wrap(msg.getBytes()));
+                ready=true;
+                rdyBottun.remove();
+                stage.addActor(rdyBottun2);
+
+
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }else {
+            try {
+                String msg="notready";
+                sock.write(ByteBuffer.wrap(msg.getBytes()));
+                ready=false;
+                rdyBottun.remove();
+                stage.addActor(rdyBottun);
+
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+
+        }
+    }
+
+    private void showPlayersList(){
+        playerList.clear();
+        for(PlayerEntry player: players){
+            Label placeholder = new Label("->   "+player.name+" "+player.ready,skin);
+            placeholder.setFontScale(2.0f);
+            if(player.ready)
+                placeholder.setColor(0.0f,1.0f,0.0f,1.0f);
+            else
+                placeholder.setColor(1.0f,1.0f,0.0f,1.0f);
+            playerList.add(placeholder).bottom().padTop(10.0f).padLeft(20.0f);
+            playerList.row();
         }
     }
 }

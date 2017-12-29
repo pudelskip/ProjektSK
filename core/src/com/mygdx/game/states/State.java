@@ -31,11 +31,21 @@ public abstract class State {
     protected Selector sel;                           // selektor – opakowuje mechanizm typu 'select'
     protected SelectionKey sockKey;
     protected ByteBuffer bb;
-    public ArrayList<String> players;
+    public ArrayList<PlayerEntry> players;
+
+    public class PlayerEntry{
+        public String name;
+        public boolean ready;
+
+        public PlayerEntry(String name, boolean ready) {
+            this.name = name;
+            this.ready = ready;
+        }
+    }
+
 
     public State(GameStateManager gsm, SpriteBatch sb, SocketChannel sock){
-        players= new ArrayList<String>();
-        players.add("Ja");
+        players= new ArrayList<PlayerEntry>();
         this.gameStateManager=gsm;
         this.sock=sock;
         this.batch=sb;
@@ -44,7 +54,7 @@ public abstract class State {
         viewport = new FitViewport(MyGdxGame.WIDTH,MyGdxGame.HEIGHT,camera);
         stage = new Stage(viewport,batch);
         pointer = new Vector3();
-         bb = ByteBuffer.allocate(1024);
+        bb = ByteBuffer.allocate(1024);
     }
 
     public abstract void handleInput();
