@@ -2,16 +2,21 @@ package com.mygdx.game.states;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Vector3;
-import com.badlogic.gdx.scenes.scene2d.ui.Button;
+import com.badlogic.gdx.scenes.scene2d.Actor;
+import com.badlogic.gdx.scenes.scene2d.InputEvent;
+import com.badlogic.gdx.scenes.scene2d.InputListener;
 import com.mygdx.game.Map;
-import com.mygdx.game.MyGdxGame;
 import com.mygdx.game.Player;
 
-import java.net.Socket;
+import java.io.IOException;
+
+import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
+
 
 /**
  * Created by Pawel on 03.12.2017.
@@ -19,20 +24,42 @@ import java.nio.channels.SocketChannel;
 
 
 public class PlayState extends State {
+
+
     int[][] testmap;
 
     BitmapFont font;
 
     Texture bg;
-    Texture buttonUp;
-    Texture buttonDown;
-    Texture buttonLeft;
-    Texture buttonRight;
+    MyButton buttonUp;
+    MyButton buttonDown;
+    MyButton buttonLeft;
+    MyButton buttonRight;
 
     private int bg_h=0;
     private int bg_w=0;
     Player player;
     Map map;
+
+    public class MyButton extends Actor {
+
+        Texture texture;
+        float actorX,actorY;
+
+
+        public MyButton(Texture texture, float actorX, float actorY) {
+            this.texture = texture;
+            this.actorX = actorX;
+            this.actorY = actorY;
+            setBounds(actorX,actorY,texture.getWidth(),texture.getHeight());
+
+        }
+
+        @Override
+        public void draw(Batch batch, float alpha){
+            batch.draw(texture,actorX,actorY,100,100);
+        }
+    }
 
 
 
@@ -44,11 +71,34 @@ public class PlayState extends State {
         player=new Player();
         map= new Map();
         bg= new Texture("sprites/bg.png");
-        buttonDown = new Texture("sprites/button.png");
-        buttonUp = new Texture("sprites/button.png");
-        buttonLeft = new Texture("sprites/button.png");
-        buttonRight = new Texture("sprites/button.png");
-        camera.setToOrtho(false,1280, 720);
+        buttonDown = new MyButton(new Texture("arrowD.png"),1090,270);
+        buttonUp = new MyButton(new Texture("arrowU.png"),1090,430);
+        buttonLeft = new MyButton(new Texture("arrowL.png"),1005,350);
+        buttonRight = new MyButton(new Texture("arrowR.png"),1175,350);
+        buttonDown.addListener(new InputListener(){
+            public boolean touchDown (InputEvent event, float x, float y, int pointer, int button) {
+                player.moveDown();
+                return true;
+            }
+        });
+        buttonUp.addListener(new InputListener(){
+            public boolean touchDown (InputEvent event, float x, float y, int pointer, int button) {
+                player.moveUp();
+                return true;
+            }
+        });
+        buttonLeft.addListener(new InputListener(){
+            public boolean touchDown (InputEvent event, float x, float y, int pointer, int button) {
+                player.moveLeft();
+                return true;
+            }
+        });
+        buttonRight.addListener(new InputListener(){
+            public boolean touchDown (InputEvent event, float x, float y, int pointer, int button) {
+                player.moveRight();
+                return true;
+            }
+        });
 
         bg_h = bg.getHeight();
         bg_w = bg.getWidth();
@@ -71,6 +121,11 @@ public class PlayState extends State {
 
         stage.addActor(player);
         stage.addActor(map);
+        stage.addActor(buttonDown);
+        stage.addActor(buttonUp);
+        stage.addActor(buttonLeft);
+        stage.addActor(buttonRight);
+
     }
 
     @Override
@@ -97,37 +152,19 @@ public class PlayState extends State {
 
         handleInput();
         player.update(deltaTime,map);
-
+       // sendPosition(player.getPosX(),player.getPosY());
 
     }
+
+
 
     @Override
     public void render() {
         stage.draw();
-        /*
+        /*old drawing
         batch.setProjectionMatrix(camera.combined);
         batch.begin();
-
-        batch.draw(bg,(int)camera.position.x-MyGdxGame.HEIGHT/2,0,MyGdxGame.HEIGHT,MyGdxGame.HEIGHT);
-        batch.draw(buttonUp,1070,420,100,100);
-        batch.draw(buttonDown,1070,280,100,100);
-        batch.draw(buttonLeft,980,350,100,100);
-        batch.draw(buttonRight,1160,350,100,100);
-        batch.draw(player.getModel(), player.getPosX(), player.getPosY(),player.getWidth(),player.getHeight());
-
-
-
-
-
-
-        batch.end();
-
-        map.render(camera,batch);
-
-
-        batch.begin();
         font.draw(batch, String.valueOf(pointer.x)+", "+String.valueOf(pointer.y), 100, 100);
-
         font.draw(batch, String.valueOf(player.getX())+", "+String.valueOf(player.getY()), 1000, 100);
         font.draw(batch, String.valueOf(player.testX)+", "+String.valueOf(player.testY), 1000, 200);
         batch.end();*/
@@ -135,8 +172,19 @@ public class PlayState extends State {
 
     @Override
     public void dispose() {
-        //player.getModel().dispose();
-        //bg.dispose();
         stage.dispose();
+    }
+
+
+
+    private void sendPosition(float posX, float posY) {
+
+
+        try {
+            String msg=String.valueOf(posX)+";"+String.valueOf(posY);
+            sock.write(ByteBuffer.wrap(msg.getBytes()));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }

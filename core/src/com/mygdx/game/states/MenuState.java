@@ -97,7 +97,6 @@ public class MenuState extends State {
 
     }
 
-
     private class RdyButton extends Actor{
 
 
@@ -112,6 +111,7 @@ public class MenuState extends State {
             addListener(new InputListener(){
                 public boolean touchDown (InputEvent event, float x, float y, int pointer, int button) {
                     setReady();
+
                     return true;
                 }
             });
@@ -168,7 +168,8 @@ public class MenuState extends State {
     public void handleInput() {
         if(Gdx.input.justTouched()){
 
-            //gameStateManager.push(new PlayState(gameStateManager,batch,sock));
+           // gameStateManager.push(new PlayState(gameStateManager,batch,sock));
+           // dispose();
 
             //Skin skin = new Skin(Gdx.files.internal("data/uiskin.json"));
             //Dialog d = new Dialog("title",skin);
@@ -203,11 +204,6 @@ public class MenuState extends State {
     public void dispose() {
         stage.dispose();
 
-        try {
-            sock.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
     }
 
     private void tryConnectAsync(){

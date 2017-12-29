@@ -25,6 +25,10 @@ public class Player extends Actor {
 
     private Texture model;
 
+
+
+
+
     public void setPosX(float x) {
         this.position.x = x;
     }
