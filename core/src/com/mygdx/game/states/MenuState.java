@@ -111,7 +111,7 @@ public class MenuState extends State {
             addListener(new InputListener(){
                 public boolean touchDown (InputEvent event, float x, float y, int pointer, int button) {
                     setReady();
-
+                    
                     return true;
                 }
             });
@@ -168,8 +168,8 @@ public class MenuState extends State {
     public void handleInput() {
         if(Gdx.input.justTouched()){
 
-           // gameStateManager.push(new PlayState(gameStateManager,batch,sock));
-           // dispose();
+            //gameStateManager.push(new PlayState(gameStateManager,batch,sock));
+            //dispose();
 
             //Skin skin = new Skin(Gdx.files.internal("data/uiskin.json"));
             //Dialog d = new Dialog("title",skin);

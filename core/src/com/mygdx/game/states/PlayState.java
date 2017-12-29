@@ -35,6 +35,7 @@ public class PlayState extends State {
     MyButton buttonDown;
     MyButton buttonLeft;
     MyButton buttonRight;
+    MyButton bombButton;
 
     private int bg_h=0;
     private int bg_w=0;
@@ -44,7 +45,7 @@ public class PlayState extends State {
     public class MyButton extends Actor {
 
         Texture texture;
-        float actorX,actorY;
+        float actorX,actorY,width,height;
 
 
         public MyButton(Texture texture, float actorX, float actorY) {
@@ -52,15 +53,26 @@ public class PlayState extends State {
             this.actorX = actorX;
             this.actorY = actorY;
             setBounds(actorX,actorY,texture.getWidth(),texture.getHeight());
+            width=100;
+            height=100;
 
         }
+        public MyButton(Texture texture, float actorX, float actorY,float width,float height) {
+            this.texture = texture;
+            this.actorX = actorX;
+            this.actorY = actorY;
+            this.width=width;
+            this.height=height;
+            setBounds(actorX,actorY,texture.getWidth(),texture.getHeight());
+
+        }
+
 
         @Override
         public void draw(Batch batch, float alpha){
-            batch.draw(texture,actorX,actorY,100,100);
+            batch.draw(texture,actorX,actorY,width,height);
         }
     }
-
 
 
     public PlayState(GameStateManager gsm, SpriteBatch batch, SocketChannel sock) {
@@ -75,6 +87,7 @@ public class PlayState extends State {
         buttonUp = new MyButton(new Texture("arrowU.png"),1090,430);
         buttonLeft = new MyButton(new Texture("arrowL.png"),1005,350);
         buttonRight = new MyButton(new Texture("arrowR.png"),1175,350);
+        bombButton = new MyButton(new Texture("bomb.png"),0,250,250,250);
         buttonDown.addListener(new InputListener(){
             public boolean touchDown (InputEvent event, float x, float y, int pointer, int button) {
                 player.moveDown();
@@ -99,6 +112,13 @@ public class PlayState extends State {
                 return true;
             }
         });
+        bombButton.addListener(new InputListener(){
+            public boolean touchDown (InputEvent event, float x, float y, int pointer, int button) {
+                //todo BOOOM
+                return true;
+            }
+        });
+
 
         bg_h = bg.getHeight();
         bg_w = bg.getWidth();
@@ -125,6 +145,7 @@ public class PlayState extends State {
         stage.addActor(buttonUp);
         stage.addActor(buttonLeft);
         stage.addActor(buttonRight);
+        stage.addActor(bombButton);
 
     }
 
