@@ -15,7 +15,9 @@ import com.mygdx.game.Player;
 import java.io.IOException;
 
 import java.nio.ByteBuffer;
+import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
+import java.util.ArrayList;
 import java.util.List;
 
 
@@ -102,9 +104,9 @@ public class PlayState extends State {
         }
     }
 
-    public PlayState(GameStateManager gsm, SpriteBatch batch, SocketChannel sock) {
+    public PlayState(GameStateManager gsm, SpriteBatch batch, SocketChannel sock, Selector sel, ArrayList<PlayerEntry> pls, String fd) {
 
-        super(gsm,batch,sock);
+        super(gsm,batch,sock,sel,pls,fd);
         font = new BitmapFont();
         font.getData().setScale(2);
         player=new Player();
@@ -169,6 +171,10 @@ public class PlayState extends State {
 
         map.setFields(testmap);
 
+        for( PlayerEntry pl : players){
+            if(!pl.name.equals(myFd))
+                stage.addActor(pl.player);
+        }
         stage.addActor(player);
         stage.addActor(map);
         stage.addActor(buttonDown);
@@ -202,10 +208,11 @@ public class PlayState extends State {
     @Override
     public void update(float deltaTime) {
 
-        textActor.setText(player.getPosX()+":"+player.getPosY());
+
         handleInput();
         player.update(deltaTime,map);
-       // sendPosition(player.getPosX(),player.getPosY());
+        sendPosition(player.getPosX(),player.getPosY());
+        readServer();
 
     }
 
@@ -233,7 +240,7 @@ public class PlayState extends State {
     private void sendPosition(float posX, float posY) {
 
         try {
-            String msg=String.valueOf(posX)+";"+String.valueOf(posY);
+            String msg="span "+String.valueOf(posX)+" "+String.valueOf(posY);
             sock.write(ByteBuffer.wrap(msg.getBytes()));
         } catch (IOException e) {
             e.printStackTrace();
@@ -255,7 +262,8 @@ public class PlayState extends State {
 
                 sel.selectedKeys().clear();
                 String result= new String(bb.array(), "UTF-8");
-                
+                String[] dane = result.split("|");
+                textActor.setText(dane[2]);
 
 
             }

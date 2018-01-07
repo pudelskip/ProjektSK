@@ -266,7 +266,8 @@ public class MenuState extends State {
                 String result= new String(bb.array(), "UTF-8");
                 players.clear();
 
-                for(String name: result.split(";")){
+                String[] dane = result.split("|");
+                for(String name: dane[1].split(";")){
                     boolean status=false;
                    //if(!name.equals("")) players.add(new PlayerEntry(name.substring(0,name.length()-1),parseBoolean(name.substring(name.length()-2))));
                     if(name.substring(name.length()-1).equals("1"))
@@ -274,6 +275,12 @@ public class MenuState extends State {
                     if(!name.equals("")) players.add(new PlayerEntry(name.substring(0,name.length()-1),status));
                 }
                 showPlayersList();
+
+                if(dane[0].contains("g")){
+                    gameStateManager.push(new PlayState(gameStateManager,batch,sock,sel,players,myFd));
+                    dispose();
+
+                }
 
             }
         } catch (Throwable e) {
@@ -294,8 +301,7 @@ public class MenuState extends State {
                 int count = sock.read(bb);
                 if(count == -1) {
                     sockKey.cancel();
-
-                    return;
+                    throw new IOException("Nie udało sięusatlić Fd");
                 }
 
                 sel.selectedKeys().clear();
@@ -311,7 +317,7 @@ public class MenuState extends State {
     private void setReady() {
         if(!ready){
             try {
-                String msg="ready";
+                String msg="ready 0 0";
                 sock.write(ByteBuffer.wrap(msg.getBytes()));
                 ready=true;
                 rdyBottun.remove();
@@ -323,7 +329,7 @@ public class MenuState extends State {
             }
         }else {
             try {
-                String msg="notready";
+                String msg="notready 0 0";
                 sock.write(ByteBuffer.wrap(msg.getBytes()));
                 ready=false;
                 rdyBottun.remove();

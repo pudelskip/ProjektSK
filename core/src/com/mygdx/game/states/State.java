@@ -68,12 +68,27 @@ public abstract class State {
         bb = ByteBuffer.allocate(1024);
     }
 
-    public State(GameStateManager gsm, SpriteBatch sb, SocketChannel sock, String fd){
+    public State(GameStateManager gsm, SpriteBatch sb, SocketChannel sock,String fd){
         players= new ArrayList<PlayerEntry>();
         this.gameStateManager=gsm;
         this.sock=sock;
         this.batch=sb;
         this.myFd=fd;
+        camera = new OrthographicCamera();
+        camera.setToOrtho(false, MyGdxGame.WIDTH, MyGdxGame.HEIGHT);
+        viewport = new FitViewport(MyGdxGame.WIDTH,MyGdxGame.HEIGHT,camera);
+        stage = new Stage(viewport,batch);
+        pointer = new Vector3();
+        bb = ByteBuffer.allocate(1024);
+    }
+
+    public State(GameStateManager gsm, SpriteBatch sb, SocketChannel sock, Selector sel,ArrayList<PlayerEntry> pls, String fd){
+        this.players= pls;
+        this.gameStateManager=gsm;
+        this.sock=sock;
+        this.batch=sb;
+        this.myFd=fd;
+        this.sel=sel;
         camera = new OrthographicCamera();
         camera.setToOrtho(false, MyGdxGame.WIDTH, MyGdxGame.HEIGHT);
         viewport = new FitViewport(MyGdxGame.WIDTH,MyGdxGame.HEIGHT,camera);
