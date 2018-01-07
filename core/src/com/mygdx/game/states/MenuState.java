@@ -111,7 +111,7 @@ public class MenuState extends State {
             addListener(new InputListener(){
                 public boolean touchDown (InputEvent event, float x, float y, int pointer, int button) {
                     setReady();
-                    
+
                     return true;
                 }
             });
@@ -221,7 +221,7 @@ public class MenuState extends State {
                     sock=SocketChannel.open(new InetSocketAddress("192.168.0.110",22222));
                     sock.configureBlocking(false);
                     sockKey = sock.register(sel, SelectionKey.OP_READ);
-
+                    readServerMyFd();
                     text.setColor(0.0f,1.0f,0.0f,1.0f);
 
                     connectButton.remove();
@@ -275,6 +275,32 @@ public class MenuState extends State {
                 }
                 showPlayersList();
 
+            }
+        } catch (Throwable e) {
+            e.printStackTrace();
+            //todo exception handling
+        }
+    }
+
+    private void readServerMyFd(){
+
+
+        try {
+
+            sel.select();
+            if(sel.selectedKeys().size() == 1 && sel.selectedKeys().iterator().next() == sockKey){
+
+                bb.clear();
+                int count = sock.read(bb);
+                if(count == -1) {
+                    sockKey.cancel();
+
+                    return;
+                }
+
+                sel.selectedKeys().clear();
+                String result= new String(bb.array(), "UTF-8");
+                myFd=result;
             }
         } catch (Throwable e) {
             e.printStackTrace();

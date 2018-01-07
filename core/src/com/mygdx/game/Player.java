@@ -52,13 +52,15 @@ public class Player extends Actor {
 
 
     public Player(){
-        position = new Vector3(640,200,0);
-        movement = new Vector3();
+        this.position = new Vector3(640,200,0);
+        this.movement = new Vector3();
         this.model = new Texture("badlogic.jpg");
         this.height=50;
         this.width=50;
-
-
+    }
+    public Player(Player p){
+        this.position = p.position;
+        this.movement = p.movement;
 
     }
 

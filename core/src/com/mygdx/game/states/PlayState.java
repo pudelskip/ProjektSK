@@ -16,6 +16,7 @@ import java.io.IOException;
 
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
+import java.util.List;
 
 
 /**
@@ -36,6 +37,8 @@ public class PlayState extends State {
     MyButton buttonLeft;
     MyButton buttonRight;
     MyButton bombButton;
+    TextActor textActor;
+
 
     private int bg_h=0;
     private int bg_w=0;
@@ -68,12 +71,36 @@ public class PlayState extends State {
         }
 
 
+
         @Override
         public void draw(Batch batch, float alpha){
             batch.draw(texture,actorX,actorY,width,height);
         }
     }
 
+    public class TextActor extends Actor {
+        BitmapFont font;
+        String text;
+
+        public TextActor(String text) {
+            this.text = text;
+            font = new BitmapFont();
+            font.setColor(1.0f,0.0f,0.0f,1);
+        }
+
+        @Override
+        public void draw(Batch batch, float alpha){
+            font.draw(batch,"Status: "+text,10,700);
+        }
+
+
+        public void setText(String text) {
+            this.text = text;
+        }
+        public void setColor(float r, float g, float b, float a){
+            font.setColor(r,g,b,a);
+        }
+    }
 
     public PlayState(GameStateManager gsm, SpriteBatch batch, SocketChannel sock) {
 
@@ -83,6 +110,9 @@ public class PlayState extends State {
         player=new Player();
         map= new Map();
         bg= new Texture("sprites/bg.png");
+        textActor=new TextActor("");
+
+
         buttonDown = new MyButton(new Texture("arrowD.png"),1090,270);
         buttonUp = new MyButton(new Texture("arrowU.png"),1090,430);
         buttonLeft = new MyButton(new Texture("arrowL.png"),1005,350);
@@ -146,6 +176,7 @@ public class PlayState extends State {
         stage.addActor(buttonLeft);
         stage.addActor(buttonRight);
         stage.addActor(bombButton);
+        stage.addActor(textActor);
 
     }
 
@@ -171,6 +202,7 @@ public class PlayState extends State {
     @Override
     public void update(float deltaTime) {
 
+        textActor.setText(player.getPosX()+":"+player.getPosY());
         handleInput();
         player.update(deltaTime,map);
        // sendPosition(player.getPosX(),player.getPosY());
@@ -200,7 +232,6 @@ public class PlayState extends State {
 
     private void sendPosition(float posX, float posY) {
 
-
         try {
             String msg=String.valueOf(posX)+";"+String.valueOf(posY);
             sock.write(ByteBuffer.wrap(msg.getBytes()));
@@ -208,4 +239,31 @@ public class PlayState extends State {
             e.printStackTrace();
         }
     }
+
+    private void readServer(){
+        try {
+
+            sel.selectNow();
+            if(sel.selectedKeys().size() == 1 && sel.selectedKeys().iterator().next() == sockKey){
+
+                bb.clear();
+                int count = sock.read(bb);
+                if(count == -1) {
+                    sockKey.cancel();
+                    return;
+                }
+
+                sel.selectedKeys().clear();
+                String result= new String(bb.array(), "UTF-8");
+                
+
+
+            }
+        } catch (Throwable e) {
+            e.printStackTrace();
+            //todo exception handling
+        }
+    }
+
+
 }
