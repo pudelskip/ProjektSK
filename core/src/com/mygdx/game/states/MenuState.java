@@ -16,9 +16,16 @@ import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
 
 
 /**
@@ -34,6 +41,7 @@ public class MenuState extends State {
     Table menuTable;
     boolean isConnecting;
     boolean ready;
+    String start="0";
 
     ConnectButton connectButton;
     RdyButton rdyBottun;
@@ -181,14 +189,16 @@ public class MenuState extends State {
 
     @Override
     public void update(float deltaTime) {
-        text.setText(status);
+       // text.setText(status);
         handleInput();
         as+=1;
 
         if(sock !=null)
             if(sock.isConnected()){
-
                 readServer();
+        }
+        if(start.equals("1")){
+            gameStateManager.push(new PlayState(gameStateManager,batch,sock,sel,players,myFd));
         }
 
 
@@ -252,37 +262,19 @@ public class MenuState extends State {
 
         try {
 
-            sel.selectNow();
-            if(sel.selectedKeys().size() == 1 && sel.selectedKeys().iterator().next() == sockKey){
+            sel.select();
+            Set<SelectionKey> keySet = sel.selectedKeys();
+            Iterator<SelectionKey> keyIterator = keySet.iterator();
 
-                bb.clear();
-                int count = sock.read(bb);
-                if(count == -1) {
-                    sockKey.cancel();
-                    return;
-                }
-
-                sel.selectedKeys().clear();
-                String result= new String(bb.array(), "UTF-8");
-                players.clear();
-
-                String[] dane = result.split("|");
-                for(String name: dane[1].split(";")){
-                    boolean status=false;
-                   //if(!name.equals("")) players.add(new PlayerEntry(name.substring(0,name.length()-1),parseBoolean(name.substring(name.length()-2))));
-                    if(name.substring(name.length()-1).equals("1"))
-                        status=true;
-                    if(!name.equals("")) players.add(new PlayerEntry(name.substring(0,name.length()-1),status));
-                }
-                showPlayersList();
-
-                if(dane[0].contains("g")){
-                    gameStateManager.push(new PlayState(gameStateManager,batch,sock,sel,players,myFd));
-                    dispose();
-
+            while(keyIterator.hasNext()) {
+                SelectionKey currentKey = keyIterator.next();
+                keyIterator.remove();
+                if(currentKey.isValid() && currentKey.isReadable()){
+                    readFromSocket(currentKey);
                 }
 
             }
+
         } catch (Throwable e) {
             e.printStackTrace();
             //todo exception handling
@@ -293,7 +285,7 @@ public class MenuState extends State {
 
 
         try {
-
+            ByteBuffer bb = ByteBuffer.allocate(256);
             sel.select();
             if(sel.selectedKeys().size() == 1 && sel.selectedKeys().iterator().next() == sockKey){
 
@@ -305,7 +297,11 @@ public class MenuState extends State {
                 }
 
                 sel.selectedKeys().clear();
-                String result= new String(bb.array(), "UTF-8");
+
+                bb.flip();
+                CharBuffer charBuffer = StandardCharsets.UTF_8.decode(bb);
+                String result = charBuffer.toString();
+
                 myFd=result;
             }
         } catch (Throwable e) {
@@ -314,10 +310,52 @@ public class MenuState extends State {
         }
     }
 
+    private void readFromSocket(SelectionKey key) throws IOException {
+        ByteBuffer bb = ByteBuffer.allocate(256);
+        bb.clear();
+        SocketChannel sc = (SocketChannel) key.channel();
+        int count = sc.read(bb);
+
+        if(count == -1) {
+           key.cancel();
+            return;
+        }
+
+
+        bb.flip();
+        CharBuffer charBuffer = StandardCharsets.UTF_8.decode(bb);
+        String result = charBuffer.toString();
+        text.setText(String.valueOf(count));
+
+        updatePlayerList(result);
+        showPlayersList();
+
+    }
+
+    private void updatePlayerList(String result){
+
+        players.clear();
+
+        start = result.substring(0, 1);
+        String data = result.substring(1);
+        HashSet<String> playersSet = new HashSet<String>(Arrays.asList(data.split(" ")));
+        for (String palyer_data : playersSet) {
+            String[] data_splited = palyer_data.split(";");
+            boolean status = false;
+            //if(!name.equals("")) players.add(new PlayerEntry(name.substring(0,name.length()-1),parseBoolean(name.substring(name.length()-2))));
+            if (data_splited[1].equals("1"))
+                status = true;
+            if (!data_splited[0].equals(""))
+                players.put(data_splited[0], new PlayerEntry(data_splited[0], status));
+
+        }
+
+    }
+
     private void setReady() {
         if(!ready){
             try {
-                String msg="ready 0 0";
+                String msg="1 0 0";
                 sock.write(ByteBuffer.wrap(msg.getBytes()));
                 ready=true;
                 rdyBottun.remove();
@@ -329,7 +367,7 @@ public class MenuState extends State {
             }
         }else {
             try {
-                String msg="notready 0 0";
+                String msg="0 0 0";
                 sock.write(ByteBuffer.wrap(msg.getBytes()));
                 ready=false;
                 rdyBottun.remove();
@@ -345,10 +383,10 @@ public class MenuState extends State {
 
     private void showPlayersList(){
         playerList.clear();
-        for(PlayerEntry player: players){
-            Label placeholder = new Label("->   "+player.name+" "+player.ready,skin);
+        for(Map.Entry<String, PlayerEntry> splayer: players.entrySet()){
+            Label placeholder = new Label("->   "+splayer.getValue().name+" "+splayer.getValue().ready,skin);
             placeholder.setFontScale(2.0f);
-            if(player.ready)
+            if(splayer.getValue().ready)
                 placeholder.setColor(0.0f,1.0f,0.0f,1.0f);
             else
                 placeholder.setColor(1.0f,1.0f,0.0f,1.0f);

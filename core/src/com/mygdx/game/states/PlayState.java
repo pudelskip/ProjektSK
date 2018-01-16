@@ -14,11 +14,22 @@ import com.mygdx.game.Player;
 
 import java.io.IOException;
 
+import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
+import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
+
+import static java.lang.Thread.sleep;
 
 
 /**
@@ -104,7 +115,7 @@ public class PlayState extends State {
         }
     }
 
-    public PlayState(GameStateManager gsm, SpriteBatch batch, SocketChannel sock, Selector sel, ArrayList<PlayerEntry> pls, String fd) {
+    public PlayState(GameStateManager gsm, SpriteBatch batch, SocketChannel sock, Selector sel, HashMap<String, PlayerEntry> pls, String fd) {
 
         super(gsm,batch,sock,sel,pls,fd);
         font = new BitmapFont();
@@ -171,9 +182,9 @@ public class PlayState extends State {
 
         map.setFields(testmap);
 
-        for( PlayerEntry pl : players){
-            if(!pl.name.equals(myFd))
-                stage.addActor(pl.player);
+        for(java.util.Map.Entry<String, PlayerEntry> splayer: players.entrySet()){
+            if(!splayer.getKey().equals(myFd))
+                stage.addActor(splayer.getValue().player);
         }
         stage.addActor(player);
         stage.addActor(map);
@@ -183,6 +194,29 @@ public class PlayState extends State {
         stage.addActor(buttonRight);
         stage.addActor(bombButton);
         stage.addActor(textActor);
+
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                int count=1;
+                while(count>=0){
+                    sendPosition(player.getPosX(),player.getPosY());
+                    try {
+                        readServer();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    try {
+                        sleep(10);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+
+
+                }
+
+            }
+        }).start();
 
     }
 
@@ -208,11 +242,11 @@ public class PlayState extends State {
     @Override
     public void update(float deltaTime) {
 
-
         handleInput();
         player.update(deltaTime,map);
-        sendPosition(player.getPosX(),player.getPosY());
-        readServer();
+
+
+
 
     }
 
@@ -240,38 +274,73 @@ public class PlayState extends State {
     private void sendPosition(float posX, float posY) {
 
         try {
-            String msg="span "+String.valueOf(posX)+" "+String.valueOf(posY);
+            String msg="1 "+String.valueOf(posX)+" "+String.valueOf(posY);
             sock.write(ByteBuffer.wrap(msg.getBytes()));
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    private void readServer(){
+    private void readServer() throws IOException {
         try {
 
-            sel.selectNow();
-            if(sel.selectedKeys().size() == 1 && sel.selectedKeys().iterator().next() == sockKey){
+            sel.select();
+            Set<SelectionKey> keySet = sel.selectedKeys();
+            Iterator<SelectionKey> keyIterator = keySet.iterator();
 
-                bb.clear();
-                int count = sock.read(bb);
-                if(count == -1) {
-                    sockKey.cancel();
-                    return;
+            while(keyIterator.hasNext()) {
+                SelectionKey currentKey = keyIterator.next();
+                keyIterator.remove();
+                if(currentKey.isValid() && currentKey.isReadable()){
+                    readFromSocket(currentKey);
                 }
 
-                sel.selectedKeys().clear();
-                String result= new String(bb.array(), "UTF-8");
-                String[] dane = result.split("|");
-                textActor.setText(dane[2]);
-
-
             }
+
+
         } catch (Throwable e) {
             e.printStackTrace();
             //todo exception handling
         }
     }
 
+    private void readFromSocket(SelectionKey key) throws IOException {
+        ByteBuffer bb = ByteBuffer.allocate(256);
+        bb.clear();
+        SocketChannel sc = (SocketChannel) key.channel();
+        int count = sc.read(bb);
+
+        if(count == -1) {
+            key.cancel();
+            return;
+        }
+
+
+        bb.flip();
+        CharBuffer charBuffer = StandardCharsets.UTF_8.decode(bb);
+        String result = charBuffer.toString();
+        updatePlayerList(result);
+
+    }
+
+    private void updatePlayerList(String result){
+
+        String data = result.substring(1);
+        HashSet<String> playersSet = new HashSet<String>(Arrays.asList(data.split(" ")));
+        for (String palyer_data : playersSet) {
+            String[] data_splited = palyer_data.split(";");
+
+            if (!data_splited[0].equals(myFd)) {
+                PlayerEntry cur_player = (PlayerEntry) players.get(data_splited[0]);
+                String[] cords = data_splited[2].split(",");
+                cur_player.player.setPosX(Float.valueOf(cords[0]));
+                cur_player.player.setPosY(Float.valueOf(cords[1]));
+
+            }
+            //if(!name.equals("")) players.add(new PlayerEntry(name.substring(0,name.length()-1),parseBoolean(name.substring(name.length()-2))));
+
+        }
+
+    }
 
 }

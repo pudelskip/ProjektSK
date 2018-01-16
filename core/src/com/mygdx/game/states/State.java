@@ -15,6 +15,7 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -31,8 +32,7 @@ public abstract class State {
     protected SocketChannel sock;
     protected Selector sel;                           // selektor – opakowuje mechanizm typu 'select'
     protected SelectionKey sockKey;
-    protected ByteBuffer bb;
-    public ArrayList<PlayerEntry> players;
+    public HashMap<String,PlayerEntry> players;
     protected String myFd;
 
     public class PlayerEntry{
@@ -56,7 +56,7 @@ public abstract class State {
 
 
     public State(GameStateManager gsm, SpriteBatch sb, SocketChannel sock){
-        players= new ArrayList<PlayerEntry>();
+        players= new HashMap<String, PlayerEntry>();
         this.gameStateManager=gsm;
         this.sock=sock;
         this.batch=sb;
@@ -65,11 +65,11 @@ public abstract class State {
         viewport = new FitViewport(MyGdxGame.WIDTH,MyGdxGame.HEIGHT,camera);
         stage = new Stage(viewport,batch);
         pointer = new Vector3();
-        bb = ByteBuffer.allocate(1024);
+
     }
 
     public State(GameStateManager gsm, SpriteBatch sb, SocketChannel sock,String fd){
-        players= new ArrayList<PlayerEntry>();
+        players= new HashMap<String, PlayerEntry>();
         this.gameStateManager=gsm;
         this.sock=sock;
         this.batch=sb;
@@ -79,10 +79,10 @@ public abstract class State {
         viewport = new FitViewport(MyGdxGame.WIDTH,MyGdxGame.HEIGHT,camera);
         stage = new Stage(viewport,batch);
         pointer = new Vector3();
-        bb = ByteBuffer.allocate(1024);
+
     }
 
-    public State(GameStateManager gsm, SpriteBatch sb, SocketChannel sock, Selector sel,ArrayList<PlayerEntry> pls, String fd){
+    public State(GameStateManager gsm, SpriteBatch sb, SocketChannel sock, Selector sel,HashMap<String, PlayerEntry> pls, String fd){
         this.players= pls;
         this.gameStateManager=gsm;
         this.sock=sock;
@@ -94,7 +94,7 @@ public abstract class State {
         viewport = new FitViewport(MyGdxGame.WIDTH,MyGdxGame.HEIGHT,camera);
         stage = new Stage(viewport,batch);
         pointer = new Vector3();
-        bb = ByteBuffer.allocate(1024);
+
     }
 
     public abstract void handleInput();
