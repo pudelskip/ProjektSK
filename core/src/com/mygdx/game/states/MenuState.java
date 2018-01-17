@@ -14,7 +14,9 @@ import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.channels.SelectionKey;
@@ -42,6 +44,7 @@ public class MenuState extends State {
     boolean isConnecting;
     boolean ready;
     String start="0";
+    String sock_type="";
 
     ConnectButton connectButton;
     RdyButton rdyBottun;
@@ -92,7 +95,10 @@ public class MenuState extends State {
             setBounds(actorX,actorY,texture.getWidth(),texture.getHeight());
             addListener(new InputListener(){
                 public boolean touchDown (InputEvent event, float x, float y, int pointer, int button) {
-                    tryConnectAsync();
+                    if(sock_type=="NIO")
+                        tryConnectAsyncNio();
+                    if(sock_type=="IO")
+                        tryConnectAsyncIo();
                     return true;
                 }
             });
@@ -136,40 +142,14 @@ public class MenuState extends State {
 
     public MenuState(GameStateManager gsm, SpriteBatch sb, SocketChannel sock){
         super(gsm,sb,sock);
-        Gdx.input.setInputProcessor(stage);
-        skin = new Skin(Gdx.files.internal("data/uiskin.json"));
+        sock_type="NIO";
+       initAll();
+    }
 
-        connectButton = new ConnectButton(new Texture("conn.png"));
-        rdyBottun = new RdyButton(new Texture("rdy1.png"));
-        rdyBottun2 = new RdyButton(new Texture("rdy2.png"));
-        connectButton.setTouchable(Touchable.enabled);
-
-        menuTable = new Table(skin);
-        playerList = new Table(skin);
-
-
-        this.status = "Rozłączono";
-        this.isConnecting=false;
-        this.ready=false;
-
-        text = new TextActor(status);
-
-        stage.addActor(text);
-        stage.addActor(connectButton);
-        stage.addActor(menuTable);
-        menuTable.setDebug(true);
-        playerList.setDebug(true);
-        menuTable.setFillParent(true);
-
-
-
-        menuTable.add(playerList).expand().top().left().pad(100.0f,20.0f,100.0f,600.0f);
-
-
-
-
-
-
+    public MenuState(GameStateManager gsm, SpriteBatch sb, Socket sock){
+        super(gsm,sb,sock);
+        sock_type="IO";
+        initAll();
     }
 
     @Override
@@ -216,7 +196,7 @@ public class MenuState extends State {
 
     }
 
-    private void tryConnectAsync(){
+    private void tryConnectAsyncNio(){
         if(!isConnecting){
             isConnecting=true;
         text.setColor(1.0f,1.0f,0.0f,1.0f);
@@ -231,7 +211,7 @@ public class MenuState extends State {
                     sock=SocketChannel.open(new InetSocketAddress("192.168.0.110",22222));
                     sock.configureBlocking(false);
                     sockKey = sock.register(sel, SelectionKey.OP_READ);
-                    readServerMyFd();
+                    readServerMyFdNio();
                     text.setColor(0.0f,1.0f,0.0f,1.0f);
 
                     connectButton.remove();
@@ -254,6 +234,44 @@ public class MenuState extends State {
                 });*/
             }
         }).start();
+        }
+    }
+
+    private void tryConnectAsyncIo(){
+        if(!isConnecting){
+            isConnecting=true;
+            text.setColor(1.0f,1.0f,0.0f,1.0f);
+            status="Trwa łączenie";
+
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+
+                    try {
+                        Socket sock = new Socket("192.168.0.110", 22222);
+                        readServerMyFdIo();
+                        text.setColor(0.0f,1.0f,0.0f,1.0f);
+
+                        connectButton.remove();
+                        stage.addActor(rdyBottun);
+                        status="Połączono";
+
+                    } catch (IOException e) {
+                        text.setColor(1.0f,0.0f,0.0f,1.0f);
+                        status="Błąd: "+e.getMessage();
+                        isConnecting=false;
+
+                    }
+                    // post a Runnable to the rendering thread that processes the result
+                /*Gdx.app.postRunnable(new Runnable() {
+                    @Override
+                    public void run() {
+                    //todo uruchomienie stanu gry
+
+                    }
+                });*/
+                }
+            }).start();
         }
     }
 
@@ -281,7 +299,7 @@ public class MenuState extends State {
         }
     }
 
-    private void readServerMyFd(){
+    private void readServerMyFdNio(){
 
 
         try {
@@ -304,6 +322,25 @@ public class MenuState extends State {
 
                 myFd=result;
             }
+        } catch (Throwable e) {
+            e.printStackTrace();
+            //todo exception handling
+        }
+    }
+    private void readServerMyFdIo(){
+
+
+        try {
+            InputStream is = ioSocket.getInputStream();
+            byte[] bytearr = new byte[256];
+            int count = is.read(bytearr);
+            if(count == -1) {
+                sockKey.cancel();
+                throw new IOException("Nie udało sięusatlić Fd");
+            }
+            String result = new String(bytearr);
+            myFd=result;
+
         } catch (Throwable e) {
             e.printStackTrace();
             //todo exception handling
@@ -393,5 +430,37 @@ public class MenuState extends State {
             playerList.add(placeholder).bottom().padTop(10.0f).padLeft(20.0f);
             playerList.row();
         }
+    }
+
+
+    private void initAll(){
+        Gdx.input.setInputProcessor(stage);
+        skin = new Skin(Gdx.files.internal("data/uiskin.json"));
+
+        connectButton = new ConnectButton(new Texture("conn.png"));
+        rdyBottun = new RdyButton(new Texture("rdy1.png"));
+        rdyBottun2 = new RdyButton(new Texture("rdy2.png"));
+        connectButton.setTouchable(Touchable.enabled);
+
+        menuTable = new Table(skin);
+        playerList = new Table(skin);
+
+
+        this.status = "Rozłączono";
+        this.isConnecting=false;
+        this.ready=false;
+
+        text = new TextActor(status);
+
+        stage.addActor(text);
+        stage.addActor(connectButton);
+        stage.addActor(menuTable);
+        menuTable.setDebug(true);
+        playerList.setDebug(true);
+        menuTable.setFillParent(true);
+
+        menuTable.add(playerList).expand().top().left().pad(100.0f,20.0f,100.0f,600.0f);
+
+
     }
 }

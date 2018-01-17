@@ -34,6 +34,7 @@ public abstract class State {
     protected SelectionKey sockKey;
     public HashMap<String,PlayerEntry> players;
     protected String myFd;
+    protected Socket ioSocket;
 
     public class PlayerEntry{
         public String name;
@@ -86,6 +87,35 @@ public abstract class State {
         this.players= pls;
         this.gameStateManager=gsm;
         this.sock=sock;
+        this.batch=sb;
+        this.myFd=fd;
+        this.sel=sel;
+        camera = new OrthographicCamera();
+        camera.setToOrtho(false, MyGdxGame.WIDTH, MyGdxGame.HEIGHT);
+        viewport = new FitViewport(MyGdxGame.WIDTH,MyGdxGame.HEIGHT,camera);
+        stage = new Stage(viewport,batch);
+        pointer = new Vector3();
+
+    }
+
+    public State(GameStateManager gsm, SpriteBatch sb, Socket sock){
+        players= new HashMap<String, PlayerEntry>();
+        this.gameStateManager=gsm;
+        this.ioSocket=sock;
+        this.batch=sb;
+        camera = new OrthographicCamera();
+        camera.setToOrtho(false, MyGdxGame.WIDTH, MyGdxGame.HEIGHT);
+        viewport = new FitViewport(MyGdxGame.WIDTH,MyGdxGame.HEIGHT,camera);
+        stage = new Stage(viewport,batch);
+        pointer = new Vector3();
+
+    }
+
+
+    public State(GameStateManager gsm, SpriteBatch sb, Socket sock, Selector sel,HashMap<String, PlayerEntry> pls, String fd){
+        this.players= pls;
+        this.gameStateManager=gsm;
+        this.ioSocket=sock;
         this.batch=sb;
         this.myFd=fd;
         this.sel=sel;
