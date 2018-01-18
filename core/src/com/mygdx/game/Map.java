@@ -60,6 +60,9 @@ public class Map extends Actor {
     public int getField(int i, int j) {
         return fields[i][j];
     }
+    public void setField(int i, int j, int val){
+        fields[i][j]=val;
+    }
 
     public int getOffset() {
         return offset;

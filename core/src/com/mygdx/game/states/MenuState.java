@@ -403,8 +403,8 @@ public class MenuState extends State {
 
         players.clear();
 
-        start = result.substring(0, 1);
-        String data = result.substring(1);
+        start = result.substring(100, 101);
+        String data = result.substring(101);
         HashSet<String> playersSet = new HashSet<String>(Arrays.asList(data.split(" ")));
         for (String palyer_data : playersSet) {
             String[] data_splited = palyer_data.split(";");

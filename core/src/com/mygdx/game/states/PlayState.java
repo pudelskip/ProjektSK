@@ -141,7 +141,7 @@ public class PlayState extends State {
             if(pointer.y>250 && pointer.y<500 && pointer.x <250 && pointer.x>0){
                 int x_b = (int)(player.getPosX()+player.getWidth()/2-map.getOffset())/map.getTile_size();
                 int y_b = (int)(player.getPosY()+player.getHeight()/2)/map.getTile_size();
-                textActor.setText(x_b+","+y_b);
+
                 placeBomb(x_b,y_b);
             }
 
@@ -267,8 +267,19 @@ public class PlayState extends State {
 
 
     private void updatePlayerList(String result){
+        String map_string = result.substring(0,100);
 
-        String data = result.substring(1);
+        int idx=0;
+        for(int i=0;i<10;i++){
+            for(int j=0;j<10;j++){
+                int temp_val = Character.getNumericValue(map_string.charAt(idx));
+                map.setField(i,j,temp_val);
+                idx++;
+            }
+        }
+        textActor.setText(map_string );
+
+        String data = result.substring(101);
 
         for (String palyer_data : data.split(" ")) {
             String[] data_splited = palyer_data.split(";");
@@ -302,42 +313,6 @@ public class PlayState extends State {
         buttonRight = new MyButton(new Texture("arrowR.png"),1175,350);
         bombButton = new MyButton(new Texture("bomb.png"),0,250,250,250);
 
-        buttonDown.addListener(new InputListener(){
-            public boolean touchDown (InputEvent event, float x, float y, int pointer, int button) {
-                player.moveDown();
-                return true;
-            }
-        });
-        buttonUp.addListener(new InputListener(){
-            public boolean touchDown (InputEvent event, float x, float y, int pointer, int button) {
-                player.moveUp();
-                return true;
-            }
-        });
-        buttonLeft.addListener(new InputListener(){
-            public boolean touchDown (InputEvent event, float x, float y, int pointer, int button) {
-                player.moveLeft();
-                return true;
-            }
-        });
-        buttonRight.addListener(new InputListener(){
-            public boolean touchDown (InputEvent event, float x, float y, int pointer, int button) {
-                int x_b = (int)(x-map.getOffset())/map.getTile_size();
-                int y_b = (int)(y-map.getOffset())/map.getTile_size();
-                textActor.setText(x_b+","+y_b);
-                player.moveRight();
-
-                return true;
-            }
-        });
-        bombButton.addListener(new InputListener(){
-            public boolean touchDown (InputEvent event, float x, float y, int pointer, int button) {
-
-
-                //setBomb();
-                return true;
-            }
-        });
 
 
         bg_h = bg.getHeight();
