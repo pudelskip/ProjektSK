@@ -118,6 +118,8 @@ project(":core") {
         compile "com.badlogicgames.gdx:gdx:$gdxVersion"
         compile "com.badlogicgames.gdx:gdx-box2d:$gdxVersion"
         compile 'commons-io:commons-io:2.6'
+        compile group: 'commons-io', name: 'commons-io', version: '2.4'
+
 
     }
 }

@@ -14,7 +14,9 @@ import com.mygdx.game.Player;
 
 import java.io.IOException;
 
+import java.io.InputStream;
 import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.channels.SelectionKey;
@@ -28,6 +30,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+
 
 import static java.lang.Thread.sleep;
 
@@ -51,6 +54,7 @@ public class PlayState extends State {
     MyButton buttonRight;
     MyButton bombButton;
     TextActor textActor;
+    String sock_type="";
 
 
     private int bg_h=0;
@@ -118,106 +122,15 @@ public class PlayState extends State {
     public PlayState(GameStateManager gsm, SpriteBatch batch, SocketChannel sock, Selector sel, HashMap<String, PlayerEntry> pls, String fd) {
 
         super(gsm,batch,sock,sel,pls,fd);
-        font = new BitmapFont();
-        font.getData().setScale(2);
-        player=new Player();
-        map= new Map();
-        bg= new Texture("sprites/bg.png");
-        textActor=new TextActor("");
+        sock_type="NIO";
+        initAll();
+    }
 
+    public PlayState(GameStateManager gsm, SpriteBatch batch, Socket sock, Selector sel, HashMap<String, PlayerEntry> pls, String fd) {
 
-        buttonDown = new MyButton(new Texture("arrowD.png"),1090,270);
-        buttonUp = new MyButton(new Texture("arrowU.png"),1090,430);
-        buttonLeft = new MyButton(new Texture("arrowL.png"),1005,350);
-        buttonRight = new MyButton(new Texture("arrowR.png"),1175,350);
-        bombButton = new MyButton(new Texture("bomb.png"),0,250,250,250);
-        buttonDown.addListener(new InputListener(){
-            public boolean touchDown (InputEvent event, float x, float y, int pointer, int button) {
-                player.moveDown();
-                return true;
-            }
-        });
-        buttonUp.addListener(new InputListener(){
-            public boolean touchDown (InputEvent event, float x, float y, int pointer, int button) {
-                player.moveUp();
-                return true;
-            }
-        });
-        buttonLeft.addListener(new InputListener(){
-            public boolean touchDown (InputEvent event, float x, float y, int pointer, int button) {
-                player.moveLeft();
-                return true;
-            }
-        });
-        buttonRight.addListener(new InputListener(){
-            public boolean touchDown (InputEvent event, float x, float y, int pointer, int button) {
-                player.moveRight();
-                return true;
-            }
-        });
-        bombButton.addListener(new InputListener(){
-            public boolean touchDown (InputEvent event, float x, float y, int pointer, int button) {
-                //todo BOOOM
-                return true;
-            }
-        });
-
-
-        bg_h = bg.getHeight();
-        bg_w = bg.getWidth();
-
-        testmap = new int[10][];
-
-        testmap[0]= new int[]{1, 1, 1, 1, 0, 1, 1, 1, 1, 1};
-        testmap[1]= new int[]{1, 0, 0, 0, 0, 0, 0, 0, 0, 1};
-        testmap[2]= new int[]{1, 0, 1, 1, 0, 0, 0, 1, 0, 1};
-        testmap[3]= new int[]{1, 0, 1, 0, 0, 0, 0, 0, 0, 1};
-        testmap[4]= new int[]{0, 0, 0, 0, 1, 1, 0, 0, 0, 1};
-        testmap[5]= new int[]{0, 0, 0, 0, 0, 0, 0, 0, 0, 1};
-        testmap[6]= new int[]{1, 0, 0, 0, 0, 0, 0, 1, 0, 1};
-        testmap[7]= new int[]{1, 0, 1, 0, 0, 0, 0, 1, 0, 1};
-        testmap[8]= new int[]{1, 0, 0, 0, 0, 0, 0, 0, 0, 1};
-        testmap[9]= new int[]{1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
-
-
-        map.setFields(testmap);
-
-        for(java.util.Map.Entry<String, PlayerEntry> splayer: players.entrySet()){
-            if(!splayer.getKey().equals(myFd))
-                stage.addActor(splayer.getValue().player);
-        }
-        stage.addActor(player);
-        stage.addActor(map);
-        stage.addActor(buttonDown);
-        stage.addActor(buttonUp);
-        stage.addActor(buttonLeft);
-        stage.addActor(buttonRight);
-        stage.addActor(bombButton);
-        stage.addActor(textActor);
-
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                int count=1;
-                while(count>=0){
-                    sendPosition(player.getPosX(),player.getPosY());
-                    try {
-                        readServer();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                    try {
-                        sleep(10);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-
-
-                }
-
-            }
-        }).start();
-
+        super(gsm,batch,sock,sel,pls,fd);
+        sock_type="IO";
+        initAll();
     }
 
     @Override
@@ -225,16 +138,21 @@ public class PlayState extends State {
         if(Gdx.input.isTouched()){
             pointer = new Vector3(Gdx.input.getX(), Gdx.input.getY(),0);
             camera.unproject(pointer); // mousePos is now in world coordinates
+            if(pointer.y>250 && pointer.y<500 && pointer.x <250 && pointer.x>0){
+                int x_b = (int)(player.getPosX()+player.getWidth()/2-map.getOffset())/map.getTile_size();
+                int y_b = (int)(player.getPosY()+player.getHeight()/2)/map.getTile_size();
+                textActor.setText(x_b+","+y_b);
+                placeBomb(x_b,y_b);
+            }
 
-            if(pointer.y>420 && pointer.y<520 && pointer.x <1170 && pointer.x>1070)
+            if(pointer.y>430 && pointer.y<530 && pointer.x <1190 && pointer.x>1090)
                 player.moveUp();
-            else if(pointer.y>280 && pointer.y<380 && pointer.x <1170 && pointer.x>1070)
+            else if(pointer.y>270 && pointer.y<370 && pointer.x <1190 && pointer.x>1090)
                 player.moveDown();
-            if(pointer.y>350 && pointer.y<450 && pointer.x <1080 && pointer.x>980)
+            if(pointer.y>350 && pointer.y<450 && pointer.x <1105 && pointer.x>1005)
                 player.moveLeft();
-            if(pointer.y>350 && pointer.y<450 && pointer.x <1260 && pointer.x>1160)
+            if(pointer.y>350 && pointer.y<450 && pointer.x <1275 && pointer.x>1175)
                 player.moveRight();
-
 
         }
     }
@@ -244,9 +162,6 @@ public class PlayState extends State {
 
         handleInput();
         player.update(deltaTime,map);
-
-
-
 
     }
 
@@ -275,7 +190,11 @@ public class PlayState extends State {
 
         try {
             String msg="1 "+String.valueOf(posX)+" "+String.valueOf(posY);
-            sock.write(ByteBuffer.wrap(msg.getBytes()));
+            if(sock_type=="NIO")
+                sock.write(ByteBuffer.wrap(msg.getBytes()));
+            if(sock_type=="IO")
+                ioSocket.getOutputStream().write(msg.getBytes());
+
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -304,6 +223,7 @@ public class PlayState extends State {
         }
     }
 
+
     private void readFromSocket(SelectionKey key) throws IOException {
         ByteBuffer bb = ByteBuffer.allocate(256);
         bb.clear();
@@ -323,14 +243,38 @@ public class PlayState extends State {
 
     }
 
+    private void readServerIo(){
+
+
+        try {
+            InputStream is = ioSocket.getInputStream();
+            byte[] bytearr = new byte[256];
+            int count = is.read(bytearr);
+            if(count == -1) {
+                sockKey.cancel();
+                throw new IOException("Błąd połączenia z serwerem");
+            }
+            String result = new String(bytearr).substring(0,count);
+            //String result1 = IOUtils.toString(inputStream, StandardCharsets.UTF_8);
+            //textActor.setText(myFd+" _ "+result);
+           updatePlayerList(result);
+
+        } catch (Throwable e) {
+            e.printStackTrace();
+            //todo exception handling
+        }
+    }
+
+
     private void updatePlayerList(String result){
 
         String data = result.substring(1);
-        HashSet<String> playersSet = new HashSet<String>(Arrays.asList(data.split(" ")));
-        for (String palyer_data : playersSet) {
+
+        for (String palyer_data : data.split(" ")) {
             String[] data_splited = palyer_data.split(";");
 
             if (!data_splited[0].equals(myFd)) {
+
                 PlayerEntry cur_player = (PlayerEntry) players.get(data_splited[0]);
                 String[] cords = data_splited[2].split(",");
                 cur_player.player.setPosX(Float.valueOf(cords[0]));
@@ -343,4 +287,135 @@ public class PlayState extends State {
 
     }
 
+    private void initAll(){
+        font = new BitmapFont();
+        font.getData().setScale(2);
+        player=new Player();
+        map= new Map();
+        bg= new Texture("sprites/bg.png");
+        textActor=new TextActor("");
+
+
+        buttonDown = new MyButton(new Texture("arrowD.png"),1090,270);
+        buttonUp = new MyButton(new Texture("arrowU.png"),1090,430);
+        buttonLeft = new MyButton(new Texture("arrowL.png"),1005,350);
+        buttonRight = new MyButton(new Texture("arrowR.png"),1175,350);
+        bombButton = new MyButton(new Texture("bomb.png"),0,250,250,250);
+
+        buttonDown.addListener(new InputListener(){
+            public boolean touchDown (InputEvent event, float x, float y, int pointer, int button) {
+                player.moveDown();
+                return true;
+            }
+        });
+        buttonUp.addListener(new InputListener(){
+            public boolean touchDown (InputEvent event, float x, float y, int pointer, int button) {
+                player.moveUp();
+                return true;
+            }
+        });
+        buttonLeft.addListener(new InputListener(){
+            public boolean touchDown (InputEvent event, float x, float y, int pointer, int button) {
+                player.moveLeft();
+                return true;
+            }
+        });
+        buttonRight.addListener(new InputListener(){
+            public boolean touchDown (InputEvent event, float x, float y, int pointer, int button) {
+                int x_b = (int)(x-map.getOffset())/map.getTile_size();
+                int y_b = (int)(y-map.getOffset())/map.getTile_size();
+                textActor.setText(x_b+","+y_b);
+                player.moveRight();
+
+                return true;
+            }
+        });
+        bombButton.addListener(new InputListener(){
+            public boolean touchDown (InputEvent event, float x, float y, int pointer, int button) {
+
+
+                //setBomb();
+                return true;
+            }
+        });
+
+
+        bg_h = bg.getHeight();
+        bg_w = bg.getWidth();
+
+        testmap = new int[10][];
+
+        testmap[0]= new int[]{1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+        testmap[1]= new int[]{1, 0, 0, 0, 0, 0, 0, 0, 0, 1};
+        testmap[2]= new int[]{1, 0, 1, 1, 0, 0, 0, 1, 0, 1};
+        testmap[3]= new int[]{1, 0, 1, 0, 0, 0, 0, 0, 0, 1};
+        testmap[4]= new int[]{1, 0, 0, 0, 1, 1, 0, 0, 0, 1};
+        testmap[5]= new int[]{1, 0, 0, 0, 0, 0, 0, 0, 0, 1};
+        testmap[6]= new int[]{1, 0, 0, 0, 0, 0, 0, 1, 0, 1};
+        testmap[7]= new int[]{1, 0, 1, 0, 0, 0, 0, 1, 0, 1};
+        testmap[8]= new int[]{1, 0, 0, 0, 0, 0, 0, 0, 0, 1};
+        testmap[9]= new int[]{1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+
+
+        map.setFields(testmap);
+        player.setModel();
+        for(java.util.Map.Entry<String, PlayerEntry> splayer: players.entrySet()){
+            if(!splayer.getKey().equals(myFd))
+                splayer.getValue().player.setModel();
+                stage.addActor(splayer.getValue().player);
+        }
+
+        stage.addActor(map);
+        stage.addActor(buttonDown);
+        stage.addActor(buttonUp);
+        stage.addActor(buttonLeft);
+        stage.addActor(buttonRight);
+        stage.addActor(bombButton);
+        stage.addActor(textActor);
+        stage.addActor(player);
+
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                int count=1;
+                while(count>=0){
+                    sendPosition(player.getPosX(),player.getPosY());
+                    try {
+                        if(sock_type=="NIO")
+                            readServer();
+                        if(sock_type=="IO")
+                            readServerIo();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    try {
+                        sleep(10);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+
+
+                }
+
+            }
+        }).start();
+
+
+
+    }
+
+    private void placeBomb(int x, int y){
+            String msg="1 0 0";
+
+            try {
+                if(sock_type=="NIO")
+                    sock.write(ByteBuffer.wrap(msg.getBytes()));
+                if(sock_type=="IO")
+                    ioSocket.getOutputStream().write(msg.getBytes());
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+
+    }
 }

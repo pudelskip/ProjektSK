@@ -21,16 +21,17 @@ public class MyGdxGame extends ApplicationAdapter {
     private GameStateManager gsm;
 	SpriteBatch batch;
 	SocketChannel sock=null;
-
+	Socket socket = null;
+	boolean running;
 
 
 
 	@Override
 	public void create () {
-
+		running=true;
         gsm = new GameStateManager();
 		batch = new SpriteBatch();
-		gsm.push(new MenuState(gsm,batch,sock));
+		gsm.push(new MenuState(gsm,batch,socket));
 
 
 	}
@@ -49,6 +50,7 @@ public class MyGdxGame extends ApplicationAdapter {
 
 
 
+
 	}
 	
 	@Override
@@ -57,4 +59,6 @@ public class MyGdxGame extends ApplicationAdapter {
 
 
 	}
+
+
 }

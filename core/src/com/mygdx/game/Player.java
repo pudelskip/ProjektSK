@@ -49,12 +49,14 @@ public class Player extends Actor {
         return model;
     }
 
+    public void setModel(){
+        this.model = new Texture("badlogic.jpg");
+    }
 
 
     public Player(){
         this.position = new Vector3(640,200,0);
         this.movement = new Vector3();
-        this.model = new Texture("badlogic.jpg");
         this.height=50;
         this.width=50;
     }
@@ -66,7 +68,8 @@ public class Player extends Actor {
 
     @Override
     public void draw(Batch batch, float parentAlpha) {
-        batch.draw(model,position.x,position.y,width,height);
+        if(model !=null)
+            batch.draw(model,position.x,position.y,width,height);
     }
 
     public void update(float dt, Map map){

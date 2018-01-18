@@ -29,12 +29,15 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
+import static java.lang.Thread.sleep;
+
 
 /**
  * Created by Pawel on 01.12.2017.
  */
 
 public class MenuState extends State {
+
     int as=0;
     String status;
     TextActor text;
@@ -45,6 +48,7 @@ public class MenuState extends State {
     boolean ready;
     String start="0";
     String sock_type="";
+    boolean menu_up;
 
     ConnectButton connectButton;
     RdyButton rdyBottun;
@@ -169,16 +173,16 @@ public class MenuState extends State {
 
     @Override
     public void update(float deltaTime) {
+        deltaTime = Math.min(deltaTime, 0.1f);
        // text.setText(status);
         handleInput();
-        as+=1;
 
-        if(sock !=null)
-            if(sock.isConnected()){
-                readServer();
-        }
         if(start.equals("1")){
-            gameStateManager.push(new PlayState(gameStateManager,batch,sock,sel,players,myFd));
+            menu_up=false;
+            if(sock_type=="NIO")
+                 gameStateManager.push(new PlayState(gameStateManager,batch,sock,sel,players,myFd));
+            if(sock_type=="IO")
+                gameStateManager.push(new PlayState(gameStateManager,batch,ioSocket,sel,players,myFd));
         }
 
 
@@ -248,13 +252,14 @@ public class MenuState extends State {
                 public void run() {
 
                     try {
-                        Socket sock = new Socket("192.168.0.110", 22222);
+                        ioSocket = new Socket("192.168.0.110", 22222);
                         readServerMyFdIo();
                         text.setColor(0.0f,1.0f,0.0f,1.0f);
 
                         connectButton.remove();
                         stage.addActor(rdyBottun);
                         status="Połączono";
+                        createRcvThread();
 
                     } catch (IOException e) {
                         text.setColor(1.0f,0.0f,0.0f,1.0f);
@@ -299,6 +304,30 @@ public class MenuState extends State {
         }
     }
 
+    private void readServerIo(){
+
+
+        try {
+            InputStream is = ioSocket.getInputStream();
+            byte[] bytearr = new byte[256];
+            int count = is.read(bytearr);
+            if(count == -1) {
+                sockKey.cancel();
+                throw new IOException("Nie udało sięusatlić Fd");
+            }
+            String result = new String(bytearr).substring(0,count);
+            text.setText(String.valueOf(count));
+
+            updatePlayerList(result);
+            showPlayersList();
+
+
+        } catch (Throwable e) {
+            e.printStackTrace();
+            //todo exception handling
+        }
+    }
+
     private void readServerMyFdNio(){
 
 
@@ -327,6 +356,7 @@ public class MenuState extends State {
             //todo exception handling
         }
     }
+
     private void readServerMyFdIo(){
 
 
@@ -338,7 +368,7 @@ public class MenuState extends State {
                 sockKey.cancel();
                 throw new IOException("Nie udało sięusatlić Fd");
             }
-            String result = new String(bytearr);
+            String result = new String(bytearr).substring(0,count);
             myFd=result;
 
         } catch (Throwable e) {
@@ -393,7 +423,10 @@ public class MenuState extends State {
         if(!ready){
             try {
                 String msg="1 0 0";
-                sock.write(ByteBuffer.wrap(msg.getBytes()));
+                if(sock_type=="NIO")
+                    sock.write(ByteBuffer.wrap(msg.getBytes()));
+                if(sock_type=="IO")
+                    ioSocket.getOutputStream().write(msg.getBytes());
                 ready=true;
                 rdyBottun.remove();
                 stage.addActor(rdyBottun2);
@@ -405,7 +438,10 @@ public class MenuState extends State {
         }else {
             try {
                 String msg="0 0 0";
-                sock.write(ByteBuffer.wrap(msg.getBytes()));
+                if(sock_type=="NIO")
+                    sock.write(ByteBuffer.wrap(msg.getBytes()));
+                if(sock_type=="IO")
+                    ioSocket.getOutputStream().write(msg.getBytes());
                 ready=false;
                 rdyBottun.remove();
                 stage.addActor(rdyBottun);
@@ -462,5 +498,40 @@ public class MenuState extends State {
         menuTable.add(playerList).expand().top().left().pad(100.0f,20.0f,100.0f,600.0f);
 
 
+    }
+
+    private void createRcvThread(){
+        menu_up=true;
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                int count=1;
+                while(menu_up){
+                    if(sock_type=="IO"){
+
+                        if(ioSocket !=null)
+                            if(ioSocket.isConnected()){
+                                readServerIo();
+                            }
+                    }
+                    if(sock_type=="NIO"){
+
+                        if(sock !=null)
+                            if(sock.isConnected()){
+                                readServer();
+                            }
+                    }
+
+                    try {
+                        sleep(10);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+
+
+                }
+
+            }
+        }).start();
     }
 }

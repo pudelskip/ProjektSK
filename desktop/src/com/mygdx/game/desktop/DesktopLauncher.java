@@ -13,6 +13,22 @@ public class DesktopLauncher {
 		config.width=MyGdxGame.WIDTH;
 		config.height = MyGdxGame.HEIGHT;
 		new LwjglApplication(new MyGdxGame(), config);
-		System.out.print(Gdx.files.internal("a"));
+
+
+
+		/**LwjglApplicationConfiguration config = new LwjglApplicationConfiguration();
+		 final ApplicationListener application = new MyGdxGame();
+		 config.width=MyGdxGame.WIDTH;
+		 config.height = MyGdxGame.HEIGHT;
+
+		 final LwjglFrame frame = new LwjglFrame(application, config);
+
+		 frame.addComponentListener(new ComponentAdapter() {
+		@Override
+		public void componentMoved(ComponentEvent e) {
+		// somehow pause your game here
+		//MyGame.getInstance().pauseGame();
+		}
+		});*/
 	}
 }
