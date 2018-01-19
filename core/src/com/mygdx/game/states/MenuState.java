@@ -174,8 +174,9 @@ public class MenuState extends State {
     @Override
     public void update(float deltaTime) {
         deltaTime = Math.min(deltaTime, 0.1f);
-       // text.setText(status);
+        text.setText(status);
         handleInput();
+
 
         if(start.equals("1")){
             menu_up=false;
@@ -258,12 +259,17 @@ public class MenuState extends State {
 
                         connectButton.remove();
                         stage.addActor(rdyBottun);
-                        status="Połączono";
+                        status="Polaczono";
                         createRcvThread();
 
                     } catch (IOException e) {
                         text.setColor(1.0f,0.0f,0.0f,1.0f);
-                        status="Błąd: "+e.getMessage();
+                        status="Blad - "+e.getMessage();
+                        isConnecting=false;
+
+                    } catch (Exception e) {
+                        text.setColor(1.0f,0.0f,0.0f,1.0f);
+                        status="Blad - "+e.getMessage();
                         isConnecting=false;
 
                     }
@@ -309,14 +315,14 @@ public class MenuState extends State {
 
         try {
             InputStream is = ioSocket.getInputStream();
-            byte[] bytearr = new byte[256];
+            byte[] bytearr = new byte[512];
             int count = is.read(bytearr);
             if(count == -1) {
                 sockKey.cancel();
-                throw new IOException("Nie udało sięusatlić Fd");
+                throw new IOException("Nie udało sie usatlic Fd");
             }
             String result = new String(bytearr).substring(0,count);
-            text.setText(String.valueOf(count));
+
 
             updatePlayerList(result);
             showPlayersList();
@@ -357,7 +363,7 @@ public class MenuState extends State {
         }
     }
 
-    private void readServerMyFdIo(){
+    private void readServerMyFdIo() throws Exception {
 
 
         try {
@@ -369,9 +375,11 @@ public class MenuState extends State {
                 throw new IOException("Nie udało sięusatlić Fd");
             }
             String result = new String(bytearr).substring(0,count);
+            if(result.contains("-1"))
+                throw new Exception("Serwer jest pelen");
             myFd=result;
 
-        } catch (Throwable e) {
+        } catch (IOException e) {
             e.printStackTrace();
             //todo exception handling
         }
@@ -392,7 +400,7 @@ public class MenuState extends State {
         bb.flip();
         CharBuffer charBuffer = StandardCharsets.UTF_8.decode(bb);
         String result = charBuffer.toString();
-        text.setText(String.valueOf(count));
+
 
         updatePlayerList(result);
         showPlayersList();

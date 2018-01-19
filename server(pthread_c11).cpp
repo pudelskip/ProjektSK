@@ -121,7 +121,7 @@ void printPl(){
 
     	//jesli tak i jest iles graczy to start
 
-    	if(ready_to_play && Players.size()>1)
+    	if(ready_to_play && Players.size()>5)
     		start=true;
 
     	//dodanie komunikaty ze start lub nie
@@ -151,7 +151,7 @@ void printPl(){
 
 
         int w =write(plr.first,  players_string.c_str(), sizeof(char)*players_string.size());
-        
+        std::cout<<players_string<<std::endl;
 
         if(w<0){
             Players.erase(plr.first);
@@ -379,7 +379,10 @@ void acceptPlayer(){
 
         auto id = std::to_string(clientFd);
 
-
+        if(Players.size()>=2){
+        	can_connect=false;
+        	id="-1";
+        }
         ///Wys³anie numeru FD klientowi
 
         int w =write(clientFd,  id.c_str(), sizeof(char)*id.size());
@@ -388,7 +391,7 @@ void acceptPlayer(){
 
              std::cout<<"B³¹d po³¹czenia z "<<clientFd<<std::endl;
         }
-        else{
+        else if(can_connect){
         clientFds.insert(clientFd);
         Players.insert(std::make_pair(clientFd, new PlayerEntry(false,350,80)));
 
