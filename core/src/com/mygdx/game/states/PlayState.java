@@ -256,7 +256,7 @@ public class PlayState extends State {
 
         try {
             InputStream is = ioSocket.getInputStream();
-            byte[] bytearr = new byte[256];
+            byte[] bytearr = new byte[512];
             int count = is.read(bytearr);
             if(count == -1) {
                 throw new IOException("Błąd połączenia z serwerem");

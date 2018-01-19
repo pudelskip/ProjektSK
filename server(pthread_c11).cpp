@@ -118,8 +118,10 @@ void printPl(){
     	    	if(!plr.second->status)
     	    		ready_to_play=false;
     	    }
+
     	//jesli tak i jest iles graczy to start
-    	if(ready_to_play && Players.size()>0)
+
+    	if(ready_to_play && Players.size()>1)
     		start=true;
 
     	//dodanie komunikaty ze start lub nie
@@ -141,14 +143,15 @@ void printPl(){
     }
 
 
-
+    players_string=map_string+players_string;
     //wys³anie do ka¿dego gracza
     for (std::pair<int, PlayerEntry*> plr : Players){
         int attepmts=0;
 
-        players_string=map_string+players_string;
+
 
         int w =write(plr.first,  players_string.c_str(), sizeof(char)*players_string.size());
+        
 
         if(w<0){
             Players.erase(plr.first);
@@ -191,7 +194,7 @@ void readb(){
                 count = read(events[i].data.fd, buffer, 1024);
                 if(count>0){
                     s.assign(buffer,count);
-                    std::cout<<s<<std::endl;
+
                     std::istringstream iss(s);
                     std::vector<std::string> result(std::istream_iterator<std::string>{iss},std::istream_iterator<std::string>());
                     int plr_fd= events[i].data.fd;
@@ -286,7 +289,7 @@ int main(int argc, char ** argv){
 	if(res) error(1, errno, "bind failed");
 
 	// enter listening mode
-	res = listen(servFd, 2);
+	res = listen(servFd, 4);
 	if(res) error(1, errno, "listen failed");
 
 
@@ -368,6 +371,7 @@ void rcvFromAllBut(int fd, char * buffer, int count){
 
 void acceptPlayer(){
     while(true){
+    	bool can_connect=true;
         sockaddr_in clientAddr{0};
         socklen_t clientAddrSize = sizeof(clientAddr);
         auto clientFd = accept(servFd, (sockaddr*) &clientAddr, &clientAddrSize);
