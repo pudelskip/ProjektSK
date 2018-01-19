@@ -61,6 +61,7 @@ public class PlayState extends State {
     private int bg_w=0;
     Player player;
     Map map;
+    boolean bomb;
 
     public class MyButton extends Actor {
 
@@ -141,8 +142,8 @@ public class PlayState extends State {
             if(pointer.y>250 && pointer.y<500 && pointer.x <250 && pointer.x>0){
                 int x_b = (int)(player.getPosX()+player.getWidth()/2-map.getOffset())/map.getTile_size();
                 int y_b = (int)(player.getPosY()+player.getHeight()/2)/map.getTile_size();
+                bomb=true;
 
-                placeBomb(x_b,y_b);
             }
 
             if(pointer.y>430 && pointer.y<530 && pointer.x <1190 && pointer.x>1090)
@@ -189,7 +190,14 @@ public class PlayState extends State {
     private void sendPosition(float posX, float posY) {
 
         try {
-            String msg="1 "+String.valueOf(posX)+" "+String.valueOf(posY);
+            String action="1";
+            if(bomb){
+                bomb=false;
+                action="2";
+
+            }
+
+            String msg=action+" "+String.valueOf(posX)+" "+String.valueOf(posY);
             if(sock_type=="NIO")
                 sock.write(ByteBuffer.wrap(msg.getBytes()));
             if(sock_type=="IO")
@@ -251,7 +259,6 @@ public class PlayState extends State {
             byte[] bytearr = new byte[256];
             int count = is.read(bytearr);
             if(count == -1) {
-                sockKey.cancel();
                 throw new IOException("Błąd połączenia z serwerem");
             }
             String result = new String(bytearr).substring(0,count);
@@ -268,16 +275,17 @@ public class PlayState extends State {
 
     private void updatePlayerList(String result){
         String map_string = result.substring(0,100);
-
+        textActor.setText(map_string);
         int idx=0;
         for(int i=0;i<10;i++){
             for(int j=0;j<10;j++){
                 int temp_val = Character.getNumericValue(map_string.charAt(idx));
                 map.setField(i,j,temp_val);
+
                 idx++;
             }
         }
-        textActor.setText(map_string );
+
 
         String data = result.substring(101);
 
@@ -322,12 +330,12 @@ public class PlayState extends State {
 
         testmap[0]= new int[]{1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
         testmap[1]= new int[]{1, 0, 0, 0, 0, 0, 0, 0, 0, 1};
-        testmap[2]= new int[]{1, 0, 1, 1, 0, 0, 0, 1, 0, 1};
-        testmap[3]= new int[]{1, 0, 1, 0, 0, 0, 0, 0, 0, 1};
-        testmap[4]= new int[]{1, 0, 0, 0, 1, 1, 0, 0, 0, 1};
+        testmap[2]= new int[]{1, 0, 0, 0, 0, 0, 0, 0, 0, 1};
+        testmap[3]= new int[]{1, 0, 0, 0, 0, 0, 0, 0, 0, 1};
+        testmap[4]= new int[]{1, 0, 0, 0, 0, 0, 0, 0, 0, 1};
         testmap[5]= new int[]{1, 0, 0, 0, 0, 0, 0, 0, 0, 1};
-        testmap[6]= new int[]{1, 0, 0, 0, 0, 0, 0, 1, 0, 1};
-        testmap[7]= new int[]{1, 0, 1, 0, 0, 0, 0, 1, 0, 1};
+        testmap[6]= new int[]{1, 0, 0, 0, 0, 0, 0, 0, 0, 1};
+        testmap[7]= new int[]{1, 0, 0, 0, 0, 0, 0, 0, 0, 1};
         testmap[8]= new int[]{1, 0, 0, 0, 0, 0, 0, 0, 0, 1};
         testmap[9]= new int[]{1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
 
@@ -348,6 +356,7 @@ public class PlayState extends State {
         stage.addActor(bombButton);
         stage.addActor(textActor);
         stage.addActor(player);
+        bomb=false;
 
         new Thread(new Runnable() {
             @Override
@@ -356,6 +365,11 @@ public class PlayState extends State {
                 while(count>=0){
                     sendPosition(player.getPosX(),player.getPosY());
                     try {
+                        sleep(10);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    try {
                         if(sock_type=="NIO")
                             readServer();
                         if(sock_type=="IO")
@@ -363,11 +377,7 @@ public class PlayState extends State {
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
-                    try {
-                        sleep(10);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
+
 
 
                 }
@@ -379,18 +389,5 @@ public class PlayState extends State {
 
     }
 
-    private void placeBomb(int x, int y){
-            String msg="1 0 0";
 
-            try {
-                if(sock_type=="NIO")
-                    sock.write(ByteBuffer.wrap(msg.getBytes()));
-                if(sock_type=="IO")
-                    ioSocket.getOutputStream().write(msg.getBytes());
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-
-
-    }
 }

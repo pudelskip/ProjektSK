@@ -14,12 +14,14 @@ public class Map extends Actor {
 
     private int[][] fields;
     Texture tile;
+    Texture bomb;
     private int offset;
     private int tile_size;
 
     public Map() {
         fields = new int[10][10];
         tile = new Texture("sprites/tile.png");
+        bomb = new Texture("bomb.png");
         this.offset=(MyGdxGame.WIDTH-MyGdxGame.HEIGHT)/2;
         this.tile_size=MyGdxGame.HEIGHT/10;
     }
@@ -29,9 +31,13 @@ public class Map extends Actor {
         sb.begin();
 
         for (int i=0;i<10;i++ )
-            for (int j=0;j<10;j++ )
-                if(fields[i][j]==1)
-                    sb.draw(tile,j*tile_size+offset,(9-i)*tile_size,tile_size,tile_size);
+            for (int j=0;j<10;j++ ) {
+                if (fields[i][j] == 1)
+                    sb.draw(tile, j * tile_size + offset, (9 - i) * tile_size, tile_size, tile_size);
+                if(fields[i][j]==2)
+                    sb.draw(bomb,j*tile_size+offset,(9-i)*tile_size,tile_size,tile_size);
+            }
+
 
         sb.end();
     }
@@ -44,9 +50,12 @@ public class Map extends Actor {
     @Override
     public void draw(Batch batch, float parentAlpha) {
         for (int i=0;i<10;i++ )
-            for (int j=0;j<10;j++ )
+            for (int j=0;j<10;j++ ){
                 if(fields[i][j]==1)
                     batch.draw(tile,j*tile_size+offset,(9-i)*tile_size,tile_size,tile_size);
+                if(fields[i][j]==2)
+                    batch.draw(bomb,j*tile_size+offset,(9-i)*tile_size,tile_size,tile_size);
+        }
     }
 
     public int[][] getFields() {

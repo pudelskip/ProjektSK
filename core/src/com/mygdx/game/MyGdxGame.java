@@ -48,9 +48,6 @@ public class MyGdxGame extends ApplicationAdapter {
 		gsm.render();
 
 
-
-
-
 	}
 	
 	@Override
