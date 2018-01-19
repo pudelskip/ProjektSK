@@ -90,13 +90,15 @@ void bomb(int x, int y){
 
 
 }
-
+//wysy³anie stanu gry do graczy
 void printPl(){
 
 	std::string players_string;
+
 	bool first;
     while(true){
     	std::this_thread::sleep_for(std::chrono::milliseconds(40));
+    	//string ze stanem mapy
     	std::string map_string="";
     	for(int i=0;i<10;i++){
     	    	    		for(int j=0;j<10;j++){
@@ -108,21 +110,25 @@ void printPl(){
 
     	bool ready_to_play=true;
     	first=true;
+    	//string z danymi graczy
     	players_string="";
 
+    	//sprawdzanie czy wszyscy gotowi
     	for (std::pair<int, PlayerEntry*> plr : Players){
     	    	if(!plr.second->status)
     	    		ready_to_play=false;
     	    }
+    	//jesli tak i jest iles graczy to start
     	if(ready_to_play && Players.size()>0)
     		start=true;
 
-
+    	//dodanie komunikaty ze start lub nie
         if(start)
         players_string="1";
         else
         players_string="0";
 
+        //wpisanie danych kazdego gracza
     for (std::pair<int, PlayerEntry*> plr : Players){
 
     	if(!first)
@@ -136,7 +142,7 @@ void printPl(){
 
 
 
-
+    //wys³anie do ka¿dego gracza
     for (std::pair<int, PlayerEntry*> plr : Players){
         int attepmts=0;
 
@@ -156,6 +162,7 @@ void printPl(){
     }
 }
 
+//odebranie wiadomosci od klientow
 void readb(){
     std::string s;
     char buffer[1024];
@@ -188,9 +195,9 @@ void readb(){
                     std::istringstream iss(s);
                     std::vector<std::string> result(std::istream_iterator<std::string>{iss},std::istream_iterator<std::string>());
                     int plr_fd= events[i].data.fd;
+
+                    //sprawdzenie czy pierwsza liczba to 2 (pod³o¿enia bomby)
                     if (result[0].find("2") != std::string::npos && start){
-
-
 
                           int coords[2];
                          int y_b= 9-static_cast<int>((strtof(result[2].c_str(),0)+25)/72);
@@ -204,19 +211,20 @@ void readb(){
                         	 //std::thread t(bomb,x_b,y_b);
 
                     }
-
+                    //sprawdzenie czy pierwsza liczba to 1 (gotowoœæ w lobby)
                     if (result[0].find("1") != std::string::npos && !start){
 
                      Players.erase(plr_fd);
                      Players.insert(std::make_pair(plr_fd, new PlayerEntry(true)));
                     }
+                    //sprawdzenie czy pierwsza liczba to 0 (nie gotowoœæ w lobby)
                     if (result[0].find("0") != std::string::npos && !start){
 
                      Players.erase(plr_fd);
                      Players.insert(std::make_pair(plr_fd, new PlayerEntry(false)));
 
                     }
-
+                    //druga i trzeba liczba to po³o¿enie gracza
                       auto it = Players.find(plr_fd);
                       it->second->x=strtof(result[1].c_str(),0);
                       it->second->y=strtof(result[2].c_str(),0);
