@@ -15,6 +15,7 @@ public class Map extends Actor {
     private int[][] fields;
     Texture tile;
     Texture bomb;
+    Texture exp;
     private int offset;
     private int tile_size;
 
@@ -22,6 +23,7 @@ public class Map extends Actor {
         fields = new int[10][10];
         tile = new Texture("sprites/tile.png");
         bomb = new Texture("bomb.png");
+        exp=new Texture("exp.png");
         this.offset=(MyGdxGame.WIDTH-MyGdxGame.HEIGHT)/2;
         this.tile_size=MyGdxGame.HEIGHT/10;
     }
@@ -55,6 +57,8 @@ public class Map extends Actor {
                     batch.draw(tile,j*tile_size+offset,(9-i)*tile_size,tile_size,tile_size);
                 if(fields[i][j]==2)
                     batch.draw(bomb,j*tile_size+offset,(9-i)*tile_size,tile_size,tile_size);
+                if(fields[i][j]==3)
+                    batch.draw(exp,j*tile_size+offset,(9-i)*tile_size,tile_size,tile_size);
         }
     }
 

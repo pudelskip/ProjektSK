@@ -21,27 +21,28 @@
 #include <thread>
 #include <chrono>
 #include <sys/time.h>
+#include <cstring>
 #define MAX_EVENTS 32
 
 class PlayerEntry{
 public:
-    bool status;
+    int status;
     float x;
     float y;
 
-   PlayerEntry(bool s);
-   PlayerEntry(bool s,float xp,float yp);
+   PlayerEntry(int s);
+   PlayerEntry(int s,float xp,float yp);
 };
-PlayerEntry::PlayerEntry(bool s){
+PlayerEntry::PlayerEntry(int s){
     status=s;
 }
-PlayerEntry::PlayerEntry(bool s, float xp, float yp){
+PlayerEntry::PlayerEntry(int s, float xp, float yp){
     status=s;
     x=xp;
     y=yp;
 }
 
-int game_map[10][10] ={
+int init_map[10][10] ={
 		{1, 1, 1, 1, 1, 1, 1, 1, 1, 1} ,
 		{1, 0, 0, 0, 0, 0, 0, 0, 0, 1} ,
 		{1, 0, 0, 0, 0, 0, 0, 0, 0, 1} ,
@@ -53,7 +54,7 @@ int game_map[10][10] ={
 		{1, 0, 0, 0, 0, 0, 0, 0, 0, 1} ,
 		{1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
 };
-
+int game_map[10][10];
 
 std::string players[4];
 std::map<int, PlayerEntry*> Players;
@@ -63,6 +64,7 @@ struct epoll_event *events ;
 struct epoll_event ev;
 // server socket
 int servFd;
+int players_alive=0;
 
 // client sockets
 std::unordered_set<int> clientFds;
@@ -81,12 +83,115 @@ void setReuseAddr(int sock);
 
 void acceptPlayer();
 
+void reset_game(){
+
+	memcpy(game_map,init_map,sizeof(init_map));
+	players_alive=0;
+	start=false;
+	Players.clear();
+
+}
 
 void bomb(int x, int y){
 
 	game_map[x][y]=2;
 	std::this_thread::sleep_for(std::chrono::milliseconds(3000));
 	game_map[x][y]=0;
+
+	int k=1;
+	int l=1;
+	int plr_coords[4][3];
+	int j=0;
+	for (std::pair<int, PlayerEntry*> plr : Players){
+		int y_b= 9-static_cast<int>((plr.second->y+25)/72);
+		int x_b= static_cast<int>((plr.second->x+25-280)/72);
+		plr_coords[j][0]=plr.first;
+		plr_coords[j][1]=y_b;
+		plr_coords[j][2]=x_b;
+		//std::cout<<"gracz "<<plr_coords[j][1]<<" "<<plr_coords[j][2]<<std::endl;
+		j++;
+
+	}
+
+	for(int i=0;i<4;i++){
+
+		if(i==0){
+			k=0;
+			l=0;
+		}
+		if(i==1){
+			k=0;
+			l=1;
+		}
+		if(i==2){
+			k=-1;
+			l=0;
+		}
+		if(i==3){
+			k=0;
+			l=-1;
+		}
+		while(game_map[x+k][y+l]!=1 && abs(k)<3 && abs(l)<3){
+
+					for(int m=0;m<j;m++){
+						//std::cout<<"gracz "<<plr_coords[j][1]<<" "<<plr_coords[j][2]<< " = "<<x+k <<" "<< y+l<<std::endl;
+						if(plr_coords[m][1]==x+k && plr_coords[m][2]==y+l){
+							auto it = Players.find(plr_coords[m][0]);
+							it->second->status=3;
+							std::cout<<"gracz "<<std::endl;
+							players_alive-=1;
+						}
+					}
+					if(game_map[x+k][y+l]==4){
+						game_map[x+k][y+l]=3;
+						break;
+					}else{
+						game_map[x+k][y+l]=3;
+					}
+					if(i%2==0){
+
+						int ak= k<0 ? -1 : 1;
+						k=k + ak;}
+					else{
+						int al =l<0 ? -1 : 1;
+						l=l+ al;}
+				}
+
+	}
+
+	std::this_thread::sleep_for(std::chrono::milliseconds(300));
+	for(int i=0;i<4;i++){
+
+			if(i==0){
+				k=0;
+				l=0;
+			}
+			if(i==1){
+				k=0;
+				l=1;
+			}
+			if(i==2){
+				k=-1;
+				l=0;
+			}
+			if(i==3){
+				k=0;
+				l=-1;
+			}
+			while(game_map[x+k][y+l]!=1 && abs(k)<3 && abs(l)<3){
+						if(game_map[x+k][y+l]==3){
+							game_map[x+k][y+l]=0;
+						}
+						if(i%2==0){
+							int ak= k<0 ? -1 : 1;
+							k=k + ak;}
+						else{
+							int al =l<0 ? -1 : 1;
+							l=l+ al;}
+					}
+
+		}
+
 
 
 }
@@ -98,15 +203,32 @@ void printPl(){
 	bool first;
     while(true){
     	std::this_thread::sleep_for(std::chrono::milliseconds(40));
+
+    	if(players_alive==0 && start){
+    	    	    		for (std::pair<int, PlayerEntry*> plr : Players){
+
+    	    	    		    	plr.second->status=5;
+    	    	    		    }
+    	    	    	}
+
+
+    	if(players_alive==1 && start){
+    		for (std::pair<int, PlayerEntry*> plr : Players){
+    		    if(plr.second->status!=3)
+    		    	plr.second->status=4;
+    		    }
+    	}
+
+
     	//string ze stanem mapy
     	std::string map_string="";
     	for(int i=0;i<10;i++){
-    	    	    		for(int j=0;j<10;j++){
-    	    	    			map_string=map_string+std::to_string(game_map[i][j]);
+    	    for(int j=0;j<10;j++){
+    	    	map_string=map_string+std::to_string(game_map[i][j]);
 
-    	    	    		}
+    	    	}
 
-    	    	    	}
+    	    }
 
     	bool ready_to_play=true;
     	first=true;
@@ -115,13 +237,13 @@ void printPl(){
 
     	//sprawdzanie czy wszyscy gotowi
     	for (std::pair<int, PlayerEntry*> plr : Players){
-    	    	if(!plr.second->status)
+    	    	if(plr.second->status==0)
     	    		ready_to_play=false;
     	    }
 
     	//jesli tak i jest iles graczy to start
 
-    	if(ready_to_play && Players.size()>5)
+    	if(ready_to_play && Players.size()>0)
     		start=true;
 
     	//dodanie komunikaty ze start lub nie
@@ -146,14 +268,12 @@ void printPl(){
     players_string=map_string+players_string;
     //wys³anie do ka¿dego gracza
     for (std::pair<int, PlayerEntry*> plr : Players){
-        int attepmts=0;
-
-
-
+    	// std::cout<<players_string<<std::endl;
+        int count =sizeof(char)*players_string.size();
         int w =write(plr.first,  players_string.c_str(), sizeof(char)*players_string.size());
-        std::cout<<players_string<<std::endl;
+       // std::cout<<players_string<<std::endl;
 
-        if(w<0){
+        if(w!=count){
             Players.erase(plr.first);
              std::cout<<"usunieto"<<plr.first<<w<<std::endl;
         }
@@ -175,11 +295,10 @@ void readb(){
 
     while(true){
 
-        int n = epoll_wait(epoll_fd, events, MAX_EVENTS,-1);
-/*
 
-        auto ret = read(event1.data.fd, buffer, sizeof buffer);
-        std::cout<<"cos"<<std::endl;*/
+
+        int n = epoll_wait(epoll_fd, events, MAX_EVENTS,-1);
+
 
         if (n < 0) {
         perror ("epoll_wait");
@@ -214,21 +333,20 @@ void readb(){
                         	 //std::thread t(bomb,x_b,y_b);
 
                     }
+                    auto it = Players.find(plr_fd);
                     //sprawdzenie czy pierwsza liczba to 1 (gotowoœæ w lobby)
                     if (result[0].find("1") != std::string::npos && !start){
+                    	it->second->status=1;
 
-                     Players.erase(plr_fd);
-                     Players.insert(std::make_pair(plr_fd, new PlayerEntry(true)));
                     }
                     //sprawdzenie czy pierwsza liczba to 0 (nie gotowoœæ w lobby)
                     if (result[0].find("0") != std::string::npos && !start){
 
-                     Players.erase(plr_fd);
-                     Players.insert(std::make_pair(plr_fd, new PlayerEntry(false)));
+                    	it->second->status=0;
 
                     }
                     //druga i trzeba liczba to po³o¿enie gracza
-                      auto it = Players.find(plr_fd);
+
                       it->second->x=strtof(result[1].c_str(),0);
                       it->second->y=strtof(result[2].c_str(),0);
 
@@ -291,7 +409,7 @@ int main(int argc, char ** argv){
 	// enter listening mode
 	res = listen(servFd, 4);
 	if(res) error(1, errno, "listen failed");
-
+	reset_game();
 
 
         //watek1
@@ -301,16 +419,10 @@ int main(int argc, char ** argv){
         t2 = std::thread(printPl);
         t3 = std::thread(readb);
 
-	t1.join();
+        t1.join();
         t2.join();
         t3.join();
-/****************************/
 
-
-
-
-
-/****************************/
 }
 
 
@@ -329,45 +441,17 @@ void setReuseAddr(int sock){
 }
 
 void ctrl_c(int){
-	for(int clientFd : clientFds)
-		close(clientFd);
+	for (std::pair<int, PlayerEntry*> plr : Players)
+		close(plr.first);
 	close(servFd);
+
 	printf("Closing server\n");
 	exit(0);
 }
 
-void sendToAllBut(int fd, char * buffer, int count){
-	int res;
-	decltype(clientFds) bad;
-	for(int clientFd : clientFds){
-		if(clientFd == fd) continue;
-		res = write(clientFd, buffer, count);
-		if(res!=count)
-			bad.insert(clientFd);
-	}
-	for(int clientFd : bad){
-		printf("removing %d\n", clientFd);
-		clientFds.erase(clientFd);
-		close(clientFd);
-	}
-}
 
 
-void rcvFromAllBut(int fd, char * buffer, int count){
-	int res;
-	decltype(clientFds) bad;
-	for(int clientFd : clientFds){
-		if(clientFd == fd) continue;
-		res = write(clientFd, buffer, count);
-		if(res!=count)
-			bad.insert(clientFd);
-	}
-	for(int clientFd : bad){
-		printf("removing %d\n", clientFd);
-		clientFds.erase(clientFd);
-		close(clientFd);
-	}
-}
+
 
 void acceptPlayer(){
     while(true){
@@ -379,7 +463,7 @@ void acceptPlayer(){
 
         auto id = std::to_string(clientFd);
 
-        if(Players.size()>=2){
+        if(Players.size()>=4){
         	can_connect=false;
         	id="-1";
         }
@@ -392,9 +476,10 @@ void acceptPlayer(){
              std::cout<<"B³¹d po³¹czenia z "<<clientFd<<std::endl;
         }
         else if(can_connect){
-        clientFds.insert(clientFd);
-        Players.insert(std::make_pair(clientFd, new PlayerEntry(false,350,80)));
 
+
+        Players.insert(std::make_pair(clientFd, new PlayerEntry(0,350,80)));
+        players_alive+=1;
         ev.events = EPOLLIN;
         ev.data.fd = clientFd;
         int ret = epoll_ctl (epoll_fd, EPOLL_CTL_ADD, clientFd, &ev);

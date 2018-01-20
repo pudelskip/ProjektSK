@@ -46,7 +46,7 @@ public class MenuState extends State {
     Table menuTable;
     boolean isConnecting;
     boolean ready;
-    String start="0";
+    String start;
     String sock_type="";
     boolean menu_up;
 
@@ -173,13 +173,14 @@ public class MenuState extends State {
 
     @Override
     public void update(float deltaTime) {
-        deltaTime = Math.min(deltaTime, 0.1f);
+
         text.setText(status);
         handleInput();
 
 
         if(start.equals("1")){
             menu_up=false;
+            dispose();
             if(sock_type=="NIO")
                  gameStateManager.push(new PlayState(gameStateManager,batch,sock,sel,players,myFd));
             if(sock_type=="IO")
@@ -479,31 +480,32 @@ public class MenuState extends State {
 
     private void initAll(){
         Gdx.input.setInputProcessor(stage);
-        skin = new Skin(Gdx.files.internal("data/uiskin.json"));
+        this.skin = new Skin(Gdx.files.internal("data/uiskin.json"));
 
-        connectButton = new ConnectButton(new Texture("conn.png"));
-        rdyBottun = new RdyButton(new Texture("rdy1.png"));
-        rdyBottun2 = new RdyButton(new Texture("rdy2.png"));
-        connectButton.setTouchable(Touchable.enabled);
+        this.connectButton = new ConnectButton(new Texture("conn.png"));
+        this.rdyBottun = new RdyButton(new Texture("rdy1.png"));
+        this.rdyBottun2 = new RdyButton(new Texture("rdy2.png"));
+        this.connectButton.setTouchable(Touchable.enabled);
 
-        menuTable = new Table(skin);
-        playerList = new Table(skin);
+        this.menuTable = new Table(skin);
+        this.playerList = new Table(skin);
 
 
         this.status = "Rozłączono";
         this.isConnecting=false;
         this.ready=false;
+        this.start="0";
 
-        text = new TextActor(status);
+        this.text = new TextActor(status);
 
         stage.addActor(text);
         stage.addActor(connectButton);
         stage.addActor(menuTable);
-        menuTable.setDebug(true);
-        playerList.setDebug(true);
-        menuTable.setFillParent(true);
+        this.menuTable.setDebug(true);
+        this.playerList.setDebug(true);
+        this.menuTable.setFillParent(true);
 
-        menuTable.add(playerList).expand().top().left().pad(100.0f,20.0f,100.0f,600.0f);
+        this.menuTable.add(playerList).expand().top().left().pad(100.0f,20.0f,100.0f,600.0f);
 
 
     }

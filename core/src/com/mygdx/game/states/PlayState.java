@@ -10,6 +10,7 @@ import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.InputListener;
 import com.mygdx.game.Map;
+import com.mygdx.game.MyGdxGame;
 import com.mygdx.game.Player;
 
 import java.io.IOException;
@@ -54,7 +55,13 @@ public class PlayState extends State {
     MyButton buttonRight;
     MyButton bombButton;
     TextActor textActor;
+    MyActor loseText;
+    MyActor winText;
+    MyActor tieText;
+    ExitButton exitButton;
     String sock_type="";
+    boolean in_game;
+    boolean game_up;
 
 
     private int bg_h=0;
@@ -96,6 +103,33 @@ public class PlayState extends State {
         }
     }
 
+    private class ExitButton extends Actor{
+
+
+        Texture texture;
+        float actorX,actorY;
+
+        public ExitButton(Texture tex) {
+            actorX=1000;
+            actorY=600;
+            texture= tex;
+            setBounds(actorX,actorY,texture.getWidth(),texture.getHeight());
+            addListener(new InputListener(){
+                public boolean touchDown (InputEvent event, float x, float y, int pointer, int button) {
+                    exitGame();
+                    return true;
+                }
+            });
+        }
+
+        @Override
+        public void draw(Batch batch, float alpha){
+            batch.draw(texture,actorX,actorY);
+        }
+
+    }
+
+
     public class TextActor extends Actor {
         BitmapFont font;
         String text;
@@ -117,6 +151,18 @@ public class PlayState extends State {
         }
         public void setColor(float r, float g, float b, float a){
             font.setColor(r,g,b,a);
+        }
+    }
+
+    public class MyActor extends Actor {
+        public MyActor(Texture texture) {
+            this.texture = texture;
+        }
+
+        Texture texture;
+        @Override
+        public void draw(Batch batch, float alpha){
+            batch.draw(texture,350, 310);
         }
     }
 
@@ -160,9 +206,10 @@ public class PlayState extends State {
 
     @Override
     public void update(float deltaTime) {
-
+        if(in_game){
         handleInput();
         player.update(deltaTime,map);
+        }
 
     }
 
@@ -267,7 +314,10 @@ public class PlayState extends State {
            updatePlayerList(result);
 
         } catch (Throwable e) {
-            e.printStackTrace();
+
+            if(game_up)
+                exitGame();
+
             //todo exception handling
         }
     }
@@ -275,7 +325,7 @@ public class PlayState extends State {
 
     private void updatePlayerList(String result){
         String map_string = result.substring(0,100);
-        textActor.setText(map_string);
+       // textActor.setText(map_string);
         int idx=0;
         for(int i=0;i<10;i++){
             for(int j=0;j<10;j++){
@@ -300,13 +350,51 @@ public class PlayState extends State {
                 cur_player.player.setPosY(Float.valueOf(cords[1]));
 
             }
+            if(data_splited[0].equals(myFd) && data_splited[1].equals("3") && in_game){
+                stage.addActor(loseText);
+                stage.addActor(exitButton);
+                in_game=false;
+                player.remove();
+                textActor.setText("RIP");
+            }
+            if(data_splited[0].equals(myFd) && data_splited[1].equals("4") && in_game){
+                stage.addActor(winText);
+                stage.addActor(exitButton);
+                in_game=false;
+                player.remove();
+
+            }
+            if(data_splited[0].equals(myFd) && data_splited[1].equals("5") && in_game){
+                stage.addActor(tieText);
+                stage.addActor(exitButton);
+                in_game=false;
+                player.remove();
+
+            }
+
             //if(!name.equals("")) players.add(new PlayerEntry(name.substring(0,name.length()-1),parseBoolean(name.substring(name.length()-2))));
 
         }
 
     }
 
+    private void exitGame(){
+
+            game_up = false;
+            try {
+                ioSocket.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            dispose();
+            gameStateManager.push(new MenuState(gameStateManager, batch, ioSocket));
+
+
+    }
+
     private void initAll(){
+        Gdx.input.setInputProcessor(stage);
+
         font = new BitmapFont();
         font.getData().setScale(2);
         player=new Player();
@@ -320,9 +408,10 @@ public class PlayState extends State {
         buttonLeft = new MyButton(new Texture("arrowL.png"),1005,350);
         buttonRight = new MyButton(new Texture("arrowR.png"),1175,350);
         bombButton = new MyButton(new Texture("bomb.png"),0,250,250,250);
-
-
-
+        loseText = new MyActor(new Texture("lose.png"));
+        winText = new MyActor(new Texture("win.png"));
+        tieText = new MyActor(new Texture("tie.png"));
+        exitButton = new ExitButton(new Texture("exit.png"));
         bg_h = bg.getHeight();
         bg_w = bg.getWidth();
 
@@ -357,12 +446,14 @@ public class PlayState extends State {
         stage.addActor(textActor);
         stage.addActor(player);
         bomb=false;
+        in_game=true;
+        game_up=true;
 
         new Thread(new Runnable() {
             @Override
             public void run() {
                 int count=1;
-                while(count>=0){
+                while(game_up){
                     sendPosition(player.getPosX(),player.getPosY());
                     try {
                         sleep(10);
