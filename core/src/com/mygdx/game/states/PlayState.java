@@ -10,10 +10,12 @@ import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.InputListener;
+import com.badlogic.gdx.utils.Timer;
 import com.mygdx.game.Map;
 import com.mygdx.game.MyGdxGame;
 import com.mygdx.game.Player;
 
+import java.io.DataInputStream;
 import java.io.IOException;
 
 import java.io.InputStream;
@@ -337,15 +339,28 @@ public class PlayState extends State {
 
 
         try {
-            InputStream is = ioSocket.getInputStream();
-            byte[] bytearr = new byte[512];
-            int count = is.read(bytearr);
-            if(count == -1) {
-                throw new IOException("Błąd połączenia z serwerem");
+            boolean end=false;
+            String result ="";
+            byte[] messageByte = new byte[1000];
+            DataInputStream in = new DataInputStream(ioSocket.getInputStream());
+            int bytesRead = 0;
+
+            messageByte[0] = in.readByte();
+            messageByte[1] = in.readByte();
+            messageByte[2] = in.readByte();
+            ByteBuffer byteBuffer = ByteBuffer.wrap(messageByte, 0, 3);
+            String v = new String(byteBuffer.array()).substring(0,3);
+            int bytesToRead = Integer.valueOf(v);
+
+            while(!end)
+            {
+                in.readFully(messageByte, 0, bytesToRead);
+                result = new String(messageByte, 0, bytesToRead);
+                if ( result.length() == bytesToRead )
+                {
+                    end = true;
+                }
             }
-            String result = new String(bytearr).substring(0,count);
-            //String result1 = IOUtils.toString(inputStream, StandardCharsets.UTF_8);
-            //textActor.setText(myFd+" _ "+result);
            updatePlayerList(result);
 
         } catch (IOException e) {
@@ -377,8 +392,10 @@ public class PlayState extends State {
 
                 PlayerEntry cur_player = (PlayerEntry) players.get(data_splited[0]);
                 String[] cords = data_splited[2].split(",");
+                if(cur_player!=null){
                 cur_player.player.setPosX(Float.valueOf(cords[0]));
                 cur_player.player.setPosY(Float.valueOf(cords[1]));
+                }
 
             }
             if(data_splited[0].equals(myFd) && data_splited[1].equals("3") && in_game){
@@ -446,7 +463,12 @@ public class PlayState extends State {
 
     private void initAll(){
         Gdx.input.setInputProcessor(stage);
-
+        Timer.schedule(new Timer.Task(){
+            @Override
+            public void run() {
+                // Do your work
+            }
+        },  0.5f);
         font = new BitmapFont();
         font.getData().setScale(2);
         player=new Player();

@@ -13,15 +13,18 @@ import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 
+import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.CharBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -49,6 +52,7 @@ public class MenuState extends State {
     String start;
     String sock_type="";
     boolean menu_up;
+
 
     ConnectButton connectButton;
     RdyButton rdyBottun;
@@ -174,7 +178,7 @@ public class MenuState extends State {
     @Override
     public void update(float deltaTime) {
 
-        text.setText(status);
+       // text.setText(status);
         handleInput();
 
 
@@ -193,7 +197,11 @@ public class MenuState extends State {
 
     @Override
     public void render() {
-        stage.draw();
+
+
+            stage.draw();
+
+
     }
 
     @Override
@@ -316,33 +324,51 @@ public class MenuState extends State {
 
 
         try {
+            boolean end=false;
+            String result ="";
+            byte[] messageByte = new byte[1000];
+            DataInputStream in = new DataInputStream(ioSocket.getInputStream());
+            int bytesRead = 0;
+
+            messageByte[0] = in.readByte();
+            messageByte[1] = in.readByte();
+            messageByte[2] = in.readByte();
+            ByteBuffer byteBuffer = ByteBuffer.wrap(messageByte, 0, 3);
+            String v = new String(byteBuffer.array()).substring(0,3);
+            int bytesToRead = Integer.valueOf(v);
+
+            while(!end)
+            {
+                in.readFully(messageByte, 0, bytesToRead);
+                result = new String(messageByte, 0, bytesToRead);
+                if ( result.length() == bytesToRead )
+                {
+                    end = true;
+                }
+            }
+            updatePlayerList(result);
+          //  showPlayersList();
+
+/*
             InputStream is = ioSocket.getInputStream();
+
             byte[] bytearr = new byte[512];
             int count = is.read(bytearr);
             if(count == -1) {
                 throw new IOException("Nie udało sie usatlic Fd");
             }
             String result = new String(bytearr).substring(0,count);
-
-            updatePlayerList(result);
-            showPlayersList();
+*/
+           // updatePlayerList(result);
+           // showPlayersList();
 
 
         } catch (Throwable e) {
-            if(rdyBottun.getStage() != null) {
-                rdyBottun.remove();
-            }
-            if(rdyBottun2.getStage() != null) {
-                rdyBottun2.remove();
-            }
-            if(rdyBottun2.getStage() == null) {
-                stage.addActor(connectButton);
-            }
 
-            disconnectSocketIo();
-            text.setColor(1.0f,0.0f,0.0f,1.0f);
-            status="Blad tutaj - "+e.getMessage();
-            isConnecting=false;
+           // disconnectSocketIo();
+            //text.setColor(1.0f,0.0f,0.0f,1.0f);
+           // status="Blad tutaj - "+e.getMessage();
+           // isConnecting=false;
         }
     }
 
@@ -517,8 +543,8 @@ public class MenuState extends State {
         stage.addActor(text);
         stage.addActor(connectButton);
         stage.addActor(menuTable);
-        this.menuTable.setDebug(true);
-        this.playerList.setDebug(true);
+       // this.menuTable.setDebug(true);
+      //  this.playerList.setDebug(true);
         this.menuTable.setFillParent(true);
 
         this.menuTable.add(playerList).expand().top().left().pad(100.0f,20.0f,100.0f,600.0f);
@@ -550,7 +576,7 @@ public class MenuState extends State {
                     }
 
                     try {
-                        sleep(10);
+                        sleep(40);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
