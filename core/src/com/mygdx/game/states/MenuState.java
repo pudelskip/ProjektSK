@@ -329,6 +329,16 @@ public class MenuState extends State {
 
 
         } catch (Throwable e) {
+            if(rdyBottun.getStage() != null) {
+                rdyBottun.remove();
+            }
+            if(rdyBottun2.getStage() != null) {
+                rdyBottun2.remove();
+            }
+            if(rdyBottun2.getStage() == null) {
+                stage.addActor(connectButton);
+            }
+
             disconnectSocketIo();
             text.setColor(1.0f,0.0f,0.0f,1.0f);
             status="Blad tutaj - "+e.getMessage();
@@ -469,10 +479,10 @@ public class MenuState extends State {
     private void showPlayersList(){
         playerList.clear();
         for(Map.Entry<String, PlayerEntry> splayer: players.entrySet()){
-            String space=" ";
+            String me="";
             if(splayer.getValue().name.equals(myFd))
-                space="(ja) ";
-            Label placeholder = new Label("-> Gracz"+space+splayer.getValue().name,skin);
+                me=" (ja)";
+            Label placeholder = new Label("-> Gracz"+splayer.getValue().name+me,skin);
             placeholder.setFontScale(2.0f);
             if(splayer.getValue().ready==1)
                 placeholder.setColor(0.0f,1.0f,0.0f,1.0f);

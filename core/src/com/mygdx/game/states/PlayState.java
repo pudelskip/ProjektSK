@@ -1,6 +1,7 @@
 package com.mygdx.game.states;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
@@ -60,15 +61,17 @@ public class PlayState extends State {
     MyActor tieText;
     ExitButton exitButton;
     String sock_type="";
+
     boolean in_game;
     boolean game_up;
-
-
+    float time=0;
+    float bomb_place_time=0;
     private int bg_h=0;
     private int bg_w=0;
     Player player;
     Map map;
     boolean bomb;
+    int bombs=3;
 
     public class MyButton extends Actor {
 
@@ -182,13 +185,18 @@ public class PlayState extends State {
 
     @Override
     public void handleInput() {
+
+
         if(Gdx.input.isTouched()){
             pointer = new Vector3(Gdx.input.getX(), Gdx.input.getY(),0);
             camera.unproject(pointer); // mousePos is now in world coordinates
             if(pointer.y>250 && pointer.y<500 && pointer.x <250 && pointer.x>0){
-                int x_b = (int)(player.getPosX()+player.getWidth()/2-map.getOffset())/map.getTile_size();
-                int y_b = (int)(player.getPosY()+player.getHeight()/2)/map.getTile_size();
-                bomb=true;
+                if(bombs>0 && bomb_place_time>0.2){
+                    bomb_place_time=0;
+                    bombs -= 1;
+
+                    bomb=true;
+                }
 
             }
 
@@ -201,14 +209,43 @@ public class PlayState extends State {
             if(pointer.y>350 && pointer.y<450 && pointer.x <1275 && pointer.x>1175)
                 player.moveRight();
 
+        }else{
+            if(Gdx.input.isKeyPressed(Input.Keys.SPACE)){
+                if(bombs>0 && bomb_place_time>0.2){
+                    bombs -= 1;
+                    bomb_place_time=0;
+                   // int x_b = (int)(player.getPosX()+player.getWidth()/2-map.getOffset())/map.getTile_size();
+                    //int y_b = (int)(player.getPosY()+player.getHeight()/2)/map.getTile_size();
+                    bomb=true;
+                }
+            }
+
+            if(Gdx.input.isKeyPressed(Input.Keys.UP))
+                player.moveUp();
+            if(Gdx.input.isKeyPressed(Input.Keys.DOWN))
+                player.moveDown();
+            if(Gdx.input.isKeyPressed(Input.Keys.LEFT))
+                player.moveLeft();
+            if(Gdx.input.isKeyPressed(Input.Keys.RIGHT))
+                player.moveRight();
+
         }
     }
 
     @Override
     public void update(float deltaTime) {
+        textActor.setText(String.valueOf(bombs));
         if(in_game){
-        handleInput();
-        player.update(deltaTime,map);
+            time += deltaTime;
+            bomb_place_time += deltaTime;
+            if(time>2.0){
+                if(bombs<3)
+                bombs=bombs+1;
+                time=0;
+            }
+
+            handleInput();
+            player.update(deltaTime,map);
         }
 
     }
