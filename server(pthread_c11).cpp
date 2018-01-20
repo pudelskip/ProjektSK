@@ -202,8 +202,8 @@ void printPl(){
 	bool first;
     while(true){
     	bool reset=false;
-    	std::this_thread::sleep_for(std::chrono::milliseconds(40));
-    	std::cout<<players_alive<<" "<<start<<" "<<std::endl;
+    	std::this_thread::sleep_for(std::chrono::milliseconds(80));
+
 
     	if(players_alive==0 && start ){
     	   for (std::pair<int, PlayerEntry*> plr : Players){
@@ -277,14 +277,29 @@ void printPl(){
 
 
     players_string=map_string+players_string;
+    int count =sizeof(char)*players_string.size();
+    int temp_count= count;
+            int add_z =3;
+
+            while(temp_count>0 || add_z>0){
+            	int rem = temp_count%10;
+            	if(temp_count==0)
+            		players_string = std::to_string(0)+players_string;
+            	else
+            		players_string = std::to_string(rem)+players_string;
+            	temp_count = temp_count/10;
+            	add_z-=1;
+            }
+
     //wys³anie do ka¿dego gracza
     for (std::pair<int, PlayerEntry*> plr : Players){
     	// std::cout<<players_string<<std::endl;
-        int count =sizeof(char)*players_string.size();
-        int w =write(plr.first,  players_string.c_str(), sizeof(char)*players_string.size());
-       // std::cout<<players_string<<std::endl;
 
-        if(w!=count){
+
+        int w =write(plr.first,  players_string.c_str(), sizeof(char)*players_string.size());
+        std::cout<<count<<"|"<<players_string<<std::endl;
+
+        if(w!=count+3){
         	if(start){
         		plr.second->status=8;
         	}else{
