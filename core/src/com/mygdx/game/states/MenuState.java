@@ -252,7 +252,7 @@ public class MenuState extends State {
             new Thread(new Runnable() {
                 @Override
                 public void run() {
-
+                    String addMsg="";
                     try {
                         ioSocket = new Socket("192.168.0.110", 22222);
                         readServerMyFdIo();
@@ -264,8 +264,9 @@ public class MenuState extends State {
                         createRcvThread();
 
                     } catch (IOException e) {
+                        disconnectSocketIo();
                         text.setColor(1.0f,0.0f,0.0f,1.0f);
-                        status="Blad - "+e.getMessage();
+                        status="Blad - "+e.getMessage()+" "+addMsg;
                         isConnecting=false;
 
                     } catch (Exception e) {
@@ -319,19 +320,19 @@ public class MenuState extends State {
             byte[] bytearr = new byte[512];
             int count = is.read(bytearr);
             if(count == -1) {
-                sockKey.cancel();
                 throw new IOException("Nie udało sie usatlic Fd");
             }
             String result = new String(bytearr).substring(0,count);
-
 
             updatePlayerList(result);
             showPlayersList();
 
 
         } catch (Throwable e) {
-            e.printStackTrace();
-            //todo exception handling
+            disconnectSocketIo();
+            text.setColor(1.0f,0.0f,0.0f,1.0f);
+            status="Blad tutaj - "+e.getMessage();
+            isConnecting=false;
         }
     }
 
@@ -372,12 +373,14 @@ public class MenuState extends State {
             byte[] bytearr = new byte[256];
             int count = is.read(bytearr);
             if(count == -1) {
-                sockKey.cancel();
+
                 throw new IOException("Nie udało sięusatlić Fd");
             }
             String result = new String(bytearr).substring(0,count);
             if(result.contains("-1"))
                 throw new Exception("Serwer jest pelen");
+            if(result.contains("-2"))
+                throw new Exception("Aktualnie trwa gra");
             myFd=result;
 
         } catch (IOException e) {
@@ -417,10 +420,10 @@ public class MenuState extends State {
         HashSet<String> playersSet = new HashSet<String>(Arrays.asList(data.split(" ")));
         for (String palyer_data : playersSet) {
             String[] data_splited = palyer_data.split(";");
-            boolean status = false;
+            int status = 0;
             //if(!name.equals("")) players.add(new PlayerEntry(name.substring(0,name.length()-1),parseBoolean(name.substring(name.length()-2))));
             if (data_splited[1].equals("1"))
-                status = true;
+                status = 1;
             if (!data_splited[0].equals(""))
                 players.put(data_splited[0], new PlayerEntry(data_splited[0], status));
 
@@ -466,9 +469,12 @@ public class MenuState extends State {
     private void showPlayersList(){
         playerList.clear();
         for(Map.Entry<String, PlayerEntry> splayer: players.entrySet()){
-            Label placeholder = new Label("->   "+splayer.getValue().name+" "+splayer.getValue().ready,skin);
+            String space=" ";
+            if(splayer.getValue().name.equals(myFd))
+                space="(ja) ";
+            Label placeholder = new Label("-> Gracz"+space+splayer.getValue().name,skin);
             placeholder.setFontScale(2.0f);
-            if(splayer.getValue().ready)
+            if(splayer.getValue().ready==1)
                 placeholder.setColor(0.0f,1.0f,0.0f,1.0f);
             else
                 placeholder.setColor(1.0f,1.0f,0.0f,1.0f);
@@ -512,7 +518,8 @@ public class MenuState extends State {
 
     private void createRcvThread(){
         menu_up=true;
-        new Thread(new Runnable() {
+        Thread recv;
+        recv =new Thread(new Runnable() {
             @Override
             public void run() {
                 int count=1;
@@ -542,6 +549,18 @@ public class MenuState extends State {
                 }
 
             }
-        }).start();
+        });
+        recv.setDaemon(true);
+        recv.start();
+    }
+
+    private void disconnectSocketIo(){
+        try {
+            ioSocket.close();
+        } catch (IOException e) {
+            text.setColor(1.0f,0.0f,0.0f,1.0f);
+            status="Blad - Gniazdo juz rozlaczone";
+            isConnecting=false;
+        }
     }
 }

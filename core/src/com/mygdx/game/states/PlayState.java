@@ -234,10 +234,10 @@ public class PlayState extends State {
 
 
 
-    private void sendPosition(float posX, float posY) {
+    private void sendPosition(float posX, float posY) throws IOException {
 
-        try {
-            String action="1";
+
+            String action="0";
             if(bomb){
                 bomb=false;
                 action="2";
@@ -250,9 +250,7 @@ public class PlayState extends State {
             if(sock_type=="IO")
                 ioSocket.getOutputStream().write(msg.getBytes());
 
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+
     }
 
     private void readServer() throws IOException {
@@ -313,12 +311,8 @@ public class PlayState extends State {
             //textActor.setText(myFd+" _ "+result);
            updatePlayerList(result);
 
-        } catch (Throwable e) {
-
-            if(game_up)
-                exitGame();
-
-            //todo exception handling
+        } catch (IOException e) {
+            disconnectSocketIo();
         }
     }
 
@@ -355,13 +349,19 @@ public class PlayState extends State {
                 stage.addActor(exitButton);
                 in_game=false;
                 player.remove();
+                player.setPosX(0);
                 textActor.setText("RIP");
+                game_up = false;
+                disconnectSocketIo();
             }
             if(data_splited[0].equals(myFd) && data_splited[1].equals("4") && in_game){
                 stage.addActor(winText);
                 stage.addActor(exitButton);
                 in_game=false;
                 player.remove();
+                game_up = false;
+                disconnectSocketIo();
+
 
             }
             if(data_splited[0].equals(myFd) && data_splited[1].equals("5") && in_game){
@@ -369,8 +369,19 @@ public class PlayState extends State {
                 stage.addActor(exitButton);
                 in_game=false;
                 player.remove();
+                game_up = false;
+                disconnectSocketIo();
+
 
             }
+            if(!data_splited[0].equals(myFd) && data_splited[1].equals("8") && in_game){
+                PlayerEntry cur_player = (PlayerEntry) players.get(data_splited[0]);
+                cur_player.player.remove();
+                players.remove(data_splited[0]);
+
+            }
+
+
 
             //if(!name.equals("")) players.add(new PlayerEntry(name.substring(0,name.length()-1),parseBoolean(name.substring(name.length()-2))));
 
@@ -380,16 +391,20 @@ public class PlayState extends State {
 
     private void exitGame(){
 
-            game_up = false;
-            try {
-                ioSocket.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
             dispose();
             gameStateManager.push(new MenuState(gameStateManager, batch, ioSocket));
 
 
+    }
+
+    private void disconnectSocketIo(){
+        try {
+            ioSocket.close();
+        } catch (IOException e) {
+            textActor.setColor(1.0f,0.0f,0.0f,1.0f);
+            textActor.setText("Blad - Gniazdo juz rozlaczone");
+
+        }
     }
 
     private void initAll(){
@@ -448,33 +463,34 @@ public class PlayState extends State {
         bomb=false;
         in_game=true;
         game_up=true;
-
-        new Thread(new Runnable() {
+        Thread sndARcv;
+        sndARcv = new Thread(new Runnable() {
             @Override
             public void run() {
-                int count=1;
-                while(game_up){
-                    sendPosition(player.getPosX(),player.getPosY());
+                boolean connected=true;
+                while(game_up && connected){
+
+
                     try {
+                        sendPosition(player.getPosX(),player.getPosY());
                         sleep(10);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                    try {
                         if(sock_type=="NIO")
                             readServer();
                         if(sock_type=="IO")
                             readServerIo();
                     } catch (IOException e) {
+                        connected=false;
+                    } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
-
 
 
                 }
 
             }
-        }).start();
+        });
+        sndARcv.setDaemon(true);
+        sndARcv.start();
 
 
 

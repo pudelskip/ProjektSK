@@ -38,15 +38,15 @@ public abstract class State {
 
     public class PlayerEntry{
         public String name;
-        public boolean ready;
+        public int ready;
         Player player;
 
-        public PlayerEntry(String name, boolean ready) {
+        public PlayerEntry(String name, int ready) {
             this.name = name;
             this.ready = ready;
             player= new Player();
         }
-        public PlayerEntry(String name, boolean ready, Player p) {
+        public PlayerEntry(String name, int ready, Player p) {
             this.name = name;
             this.ready = ready;
             this.player = p;
