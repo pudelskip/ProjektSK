@@ -84,11 +84,10 @@ void setReuseAddr(int sock);
 void acceptPlayer();
 
 void reset_game(){
-
+	std::cout<<"reset"<<std::endl;
 	memcpy(game_map,init_map,sizeof(init_map));
 	players_alive=0;
-	start=false;
-	Players.clear();
+    Players.clear();
 
 }
 
@@ -202,14 +201,17 @@ void printPl(){
 
 	bool first;
     while(true){
+    	bool reset=false;
     	std::this_thread::sleep_for(std::chrono::milliseconds(40));
+    	std::cout<<players_alive<<" "<<start<<" "<<std::endl;
 
-    	if(players_alive==0 && start){
-    	    	    		for (std::pair<int, PlayerEntry*> plr : Players){
-
-    	    	    		    	plr.second->status=5;
-    	    	    		    }
-    	    	    	}
+    	if(players_alive==0 && start ){
+    	   for (std::pair<int, PlayerEntry*> plr : Players){
+    	    	plr.second->status=5;
+    	    	}
+    	    start=false;
+    	    reset=true;
+    	   }
 
 
     	if(players_alive==1 && start){
@@ -217,6 +219,8 @@ void printPl(){
     		    if(plr.second->status!=3)
     		    	plr.second->status=4;
     		    }
+    		start=false;
+    		reset=true;
     	}
 
 
@@ -243,7 +247,7 @@ void printPl(){
 
     	//jesli tak i jest iles graczy to start
 
-    	if(ready_to_play && Players.size()>0)
+    	if(ready_to_play && Players.size()>1 && !reset)
     		start=true;
 
     	//dodanie komunikaty ze start lub nie
@@ -253,16 +257,23 @@ void printPl(){
         players_string="0";
 
         //wpisanie danych kazdego gracza
-    for (std::pair<int, PlayerEntry*> plr : Players){
+        for (std::pair<int, PlayerEntry*> plr : Players){
 
-    	if(!first)
-    		players_string+=" ";//delmiter
-    	else
-    		first=false;
-        players_string+=std::to_string(plr.first)+";"+std::to_string(plr.second->status)+";";//Fd;staus
-        players_string+=std::to_string(plr.second->x)+","+std::to_string(plr.second->y);//x,y
+			if(!first)
+				players_string+=" ";//delmiter
+			else
+				first=false;
+			players_string+=std::to_string(plr.first)+";"+std::to_string(plr.second->status)+";";//Fd;staus
+			players_string+=std::to_string(plr.second->x)+","+std::to_string(plr.second->y);//x,y
 
     }
+        for (std::pair<int, PlayerEntry*> plr : Players){
+            if(plr.second->status==8){
+            	std::cout<<"usunieto"<<plr.first<<std::endl;
+            	Players.erase(plr.first);
+            	players_alive-=1;
+            	 }
+            }
 
 
     players_string=map_string+players_string;
@@ -274,9 +285,16 @@ void printPl(){
        // std::cout<<players_string<<std::endl;
 
         if(w!=count){
+        	if(start){
+        		plr.second->status=8;
+        	}else{
             Players.erase(plr.first);
-             std::cout<<"usunieto"<<plr.first<<w<<std::endl;
+            std::cout<<"usunieto"<<plr.first<<w<<std::endl;
+            players_alive-=1;
+        	}
         }
+        if(reset)
+		  reset_game();
         //std::cout<<"wyslano "<<plr.first<<"|"<<players_string<<std::endl;
 
     }
@@ -313,7 +331,7 @@ void readb(){
                 count = read(events[i].data.fd, buffer, 1024);
                 if(count>0){
                     s.assign(buffer,count);
-
+                    //std::cout<<s<<std::endl;
                     std::istringstream iss(s);
                     std::vector<std::string> result(std::istream_iterator<std::string>{iss},std::istream_iterator<std::string>());
                     int plr_fd= events[i].data.fd;
@@ -414,7 +432,7 @@ int main(int argc, char ** argv){
 
         //watek1
 	std::cout<<"start";
-	std::thread t1,t2,t3; // tworzy pusty obiekt w¹tku.
+	std::thread t1,t2,t3;
         t1 = std::thread(acceptPlayer);
         t2 = std::thread(printPl);
         t3 = std::thread(readb);
@@ -467,6 +485,10 @@ void acceptPlayer(){
         	can_connect=false;
         	id="-1";
         }
+        if(start){
+                	can_connect=false;
+                	id="-2";
+                }
         ///Wys³anie numeru FD klientowi
 
         int w =write(clientFd,  id.c_str(), sizeof(char)*id.size());
@@ -476,6 +498,11 @@ void acceptPlayer(){
              std::cout<<"B³¹d po³¹czenia z "<<clientFd<<std::endl;
         }
         else if(can_connect){
+        linger lin;
+        unsigned int y=sizeof(lin);
+        lin.l_onoff=1;
+        lin.l_linger=10;
+        setsockopt(clientFd,SOL_SOCKET, SO_LINGER,(void*)(&lin), y);
 
 
         Players.insert(std::make_pair(clientFd, new PlayerEntry(0,350,80)));
