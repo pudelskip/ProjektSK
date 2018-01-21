@@ -29,17 +29,19 @@ public:
     int status;
     float x;
     float y;
+    int coord_idx;
 
     PlayerEntry(int s);
-    PlayerEntry(int s,float xp,float yp);
+    PlayerEntry(int s,float xp,float yp, int c);
 };
 PlayerEntry::PlayerEntry(int s){
     status=s;
 }
-PlayerEntry::PlayerEntry(int s, float xp, float yp){
+PlayerEntry::PlayerEntry(int s, float xp, float yp, int c){
     status=s;
     x=xp;
     y=yp;
+    coord_idx = c;
 }
 
 int init_map[10][10] ={
@@ -54,7 +56,16 @@ int init_map[10][10] ={
         {1, 0, 0, 0, 0, 0, 0, 0, 0, 1} ,
         {1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
 };
+//350, 590; 860, 590 ; 860,80 ; 350, 80
 int game_map[10][10];
+
+int init_coords[4][3]{
+        {350, 590, 0},
+        {860, 590, 0},
+        {860, 80, 0},
+        {350, 80, 0}
+};
+int p_coords[4][3];
 
 std::string players[4];
 std::map<int, PlayerEntry*> Players;
@@ -86,6 +97,7 @@ void acceptPlayer();
 void reset_game(){
     std::cout<<"reset"<<std::endl;
     memcpy(game_map,init_map,sizeof(init_map));
+    memcpy(p_coords, init_coords, sizeof(init_coords));
     players_alive=0;
     Players.clear();
 
@@ -202,8 +214,8 @@ void printPl(){
     bool first;
     auto time_since_half = std::chrono::high_resolution_clock::now();
     auto time_to_wait = 5;
-    #pragma clang diagnostic push
-    #pragma clang diagnostic ignored "-Wmissing-noreturn"
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wmissing-noreturn"
     while(true){
         bool reset=false;
         std::this_thread::sleep_for(std::chrono::milliseconds(80));
@@ -288,6 +300,7 @@ void printPl(){
         for (std::pair<int, PlayerEntry*> plr : Players){
             if(plr.second->status==8){
                 std::cout<<"usunieto"<<plr.first<<std::endl;
+                p_coords[plr.second->coord_idx][2] = 0;
                 Players.erase(plr.first);
                 players_alive-=1;
             }
@@ -528,6 +541,11 @@ void acceptPlayer(){
             can_connect=false;
             id="-2";
         }
+        int coord_idx = 0;
+        while(p_coords[coord_idx][2] != 0 && coord_idx < 4){
+            coord_idx++;
+        }
+        id = id + ";" + std::to_string(p_coords[coord_idx][0]) + ";" + std::to_string(p_coords[coord_idx][1]);
         ///Wys�anie numeru FD klientowi
 
         int w =write(clientFd,  id.c_str(), sizeof(char)*id.size());
@@ -537,6 +555,7 @@ void acceptPlayer(){
             std::cout<<"B��d po��czenia z "<<clientFd<<std::endl;
         }
         else if(can_connect){
+            p_coords[coord_idx][2] = 1;
             linger lin;
             unsigned int y=sizeof(lin);
             lin.l_onoff=1;
@@ -544,7 +563,8 @@ void acceptPlayer(){
             setsockopt(clientFd,SOL_SOCKET, SO_LINGER,(void*)(&lin), y);
 
 
-            Players.insert(std::make_pair(clientFd, new PlayerEntry(0,350,80)));
+//            Players.insert(std::make_pair(clientFd, new PlayerEntry(0,350,80)));
+            Players.insert(std::make_pair(clientFd, new PlayerEntry(0, p_coords[coord_idx][0], p_coords[coord_idx][1], coord_idx)));
             players_alive+=1;
             ev.events = EPOLLIN;
             ev.data.fd = clientFd;
