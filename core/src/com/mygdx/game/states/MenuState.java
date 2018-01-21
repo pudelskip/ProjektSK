@@ -325,10 +325,10 @@ public class MenuState extends State {
 
         } catch (Throwable e) {
 
-           // disconnectSocketIo();
-            //text.setColor(1.0f,0.0f,0.0f,1.0f);
-           // status="Blad tutaj - "+e.getMessage();
-           // isConnecting=false;
+            disconnectSocketIo();
+            text.setColor(1.0f,0.0f,0.0f,1.0f);
+            status="Blad - "+e.getMessage();
+            isConnecting=false;
         }
     }
 
