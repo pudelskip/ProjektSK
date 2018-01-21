@@ -47,33 +47,35 @@ import static java.lang.Thread.sleep;
 public class PlayState extends State {
 
 
-    int[][] testmap;
+    private int[][] testmap;
 
-    BitmapFont font;
+    private BitmapFont font;
 
-    Texture bg;
-    MyButton buttonUp;
-    MyButton buttonDown;
-    MyButton buttonLeft;
-    MyButton buttonRight;
-    MyButton bombButton;
-    TextActor textActor;
-    MyActor loseText;
-    MyActor winText;
-    MyActor tieText;
-    ExitButton exitButton;
-    String sock_type="";
+    private Texture bg;
+    private MyButton buttonUp;
+    private MyButton buttonDown;
+    private MyButton buttonLeft;
+    private MyButton buttonRight;
+    private MyButton bombButton;
+    private TextActor textActor;
+    private MyActor loseText;
+    private MyActor winText;
+    private MyActor tieText;
+    private MyActor serverDeadText;
+    private ExitButton exitButton;
+    private String sock_type="";
 
-    boolean in_game;
-    boolean game_up;
-    float time=0;
-    float bomb_place_time=0;
+    private boolean in_game;
+    private boolean game_up;
+    private boolean server_up;
+    private float time=0;
+    private float bomb_place_time=0;
     private int bg_h=0;
     private int bg_w=0;
-    Player player;
-    Map map;
-    boolean bomb;
-    int bombs=3;
+    private Player player;
+    private Map map;
+    private boolean bomb;
+    private int bombs=3;
 
     public class MyButton extends Actor {
 
@@ -236,6 +238,10 @@ public class PlayState extends State {
 
     @Override
     public void update(float deltaTime) {
+        if(game_up && !server_up){
+            handleServerNotResponding();
+            return;
+        }
         textActor.setText(String.valueOf(bombs));
         if(in_game){
             time += deltaTime;
@@ -292,7 +298,7 @@ public class PlayState extends State {
 
     }
 
-    private void readServer() throws IOException {
+    private boolean readServer() throws IOException {
         try {
 
             sel.select();
@@ -303,7 +309,7 @@ public class PlayState extends State {
                 SelectionKey currentKey = keyIterator.next();
                 keyIterator.remove();
                 if(currentKey.isValid() && currentKey.isReadable()){
-                    readFromSocket(currentKey);
+                    return readFromSocket(currentKey);
                 }
 
             }
@@ -313,10 +319,11 @@ public class PlayState extends State {
             e.printStackTrace();
             //todo exception handling
         }
+        return false;
     }
 
 
-    private void readFromSocket(SelectionKey key) throws IOException {
+    private boolean readFromSocket(SelectionKey key) throws IOException {
         ByteBuffer bb = ByteBuffer.allocate(256);
         bb.clear();
         SocketChannel sc = (SocketChannel) key.channel();
@@ -324,7 +331,7 @@ public class PlayState extends State {
 
         if(count == -1) {
             key.cancel();
-            return;
+            return false;
         }
 
 
@@ -332,10 +339,11 @@ public class PlayState extends State {
         CharBuffer charBuffer = StandardCharsets.UTF_8.decode(bb);
         String result = charBuffer.toString();
         updatePlayerList(result);
+        return true;
 
     }
 
-    private void readServerIo(){
+    private boolean readServerIo(){
 
 
         try {
@@ -361,11 +369,15 @@ public class PlayState extends State {
                     end = true;
                 }
             }
+
            updatePlayerList(result);
+            if(result.length() > 0)
+                return true;
 
         } catch (IOException e) {
             disconnectSocketIo();
         }
+        return false;
     }
 
 
@@ -444,7 +456,6 @@ public class PlayState extends State {
     }
 
     private void exitGame(){
-
             dispose();
             gameStateManager.push(new MenuState(gameStateManager, batch, ioSocket));
 
@@ -485,6 +496,7 @@ public class PlayState extends State {
         loseText = new MyActor(new Texture("lose.png"));
         winText = new MyActor(new Texture("win.png"));
         tieText = new MyActor(new Texture("tie.png"));
+        serverDeadText = new MyActor(new Texture("exit.png"));
         exitButton = new ExitButton(new Texture("exit.png"));
         bg_h = bg.getHeight();
         bg_w = bg.getWidth();
@@ -522,38 +534,54 @@ public class PlayState extends State {
         bomb=false;
         in_game=true;
         game_up=true;
+        server_up = true;
         Thread sndARcv;
         sndARcv = new Thread(new Runnable() {
             @Override
             public void run() {
                 boolean connected=true;
+                long lastUpdateTime = System.currentTimeMillis();
                 while(game_up && connected){
-
+                    long currentTime = System.currentTimeMillis();
+                    if(currentTime - lastUpdateTime > 10000)
+                        server_up = false;
 
                     try {
                         sendPosition(player.getPosX(),player.getPosY());
                         sleep(10);
-                        if(sock_type=="NIO")
-                            readServer();
-                        if(sock_type=="IO")
-                            readServerIo();
+                        if(sock_type=="NIO") {
+                            boolean newData = readServer();
+                            if(newData)
+                                lastUpdateTime = currentTime;
+                        }
+                        if(sock_type=="IO") {
+                            boolean newData = readServerIo();
+                            if(newData)
+                                lastUpdateTime = currentTime;
+                        }
                     } catch (IOException e) {
-                        connected=false;
+                        connected = false;
+                        server_up = false;
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
 
 
                 }
-
             }
         });
         sndARcv.setDaemon(true);
         sndARcv.start();
-
-
-
     }
 
-
+    private void handleServerNotResponding(){
+        stage.addActor(serverDeadText);
+        stage.addActor(exitButton);
+        in_game=false;
+        player.remove();
+        player.setPosX(0);
+        textActor.setText("RIP");
+        game_up = false;
+        disconnectSocketIo();
+    }
 }
