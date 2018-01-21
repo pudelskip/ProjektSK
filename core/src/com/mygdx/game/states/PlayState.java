@@ -174,14 +174,14 @@ public class PlayState extends State {
     public PlayState(GameStateManager gsm, SpriteBatch batch, SocketChannel sock, Selector sel, HashMap<String, PlayerEntry> pls, String fd) {
 
         super(gsm,batch,sock,sel,pls,fd);
-        sock_type="NIO";
+
         initAll();
     }
 
     public PlayState(GameStateManager gsm, SpriteBatch batch, Socket sock, Selector sel, HashMap<String, PlayerEntry> pls, String fd) {
 
         super(gsm,batch,sock,sel,pls,fd);
-        sock_type="IO";
+
         initAll();
     }
 
@@ -284,10 +284,8 @@ public class PlayState extends State {
             }
 
             String msg=action+" "+String.valueOf(posX)+" "+String.valueOf(posY);
-            if(sock_type=="NIO")
-                sock.write(ByteBuffer.wrap(msg.getBytes()));
-            if(sock_type=="IO")
-                ioSocket.getOutputStream().write(msg.getBytes());
+
+            ioSocket.getOutputStream().write(msg.getBytes());
 
 
     }
@@ -533,10 +531,7 @@ public class PlayState extends State {
                     try {
                         sendPosition(player.getPosX(),player.getPosY());
                         sleep(10);
-                        if(sock_type=="NIO")
-                            readServer();
-                        if(sock_type=="IO")
-                            readServerIo();
+                        readServerIo();
                     } catch (IOException e) {
                         connected=false;
                     } catch (InterruptedException e) {

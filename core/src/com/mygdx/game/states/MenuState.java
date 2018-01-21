@@ -103,9 +103,7 @@ public class MenuState extends State {
             setBounds(actorX,actorY,texture.getWidth(),texture.getHeight());
             addListener(new InputListener(){
                 public boolean touchDown (InputEvent event, float x, float y, int pointer, int button) {
-                    if(sock_type=="NIO")
-                        tryConnectAsyncNio();
-                    if(sock_type=="IO")
+
                         tryConnectAsyncIo();
                     return true;
                 }
@@ -150,13 +148,13 @@ public class MenuState extends State {
 
     public MenuState(GameStateManager gsm, SpriteBatch sb, SocketChannel sock){
         super(gsm,sb,sock);
-        sock_type="NIO";
+
        initAll();
     }
 
     public MenuState(GameStateManager gsm, SpriteBatch sb, Socket sock){
         super(gsm,sb,sock);
-        sock_type="IO";
+
         initAll();
     }
 
@@ -185,10 +183,7 @@ public class MenuState extends State {
         if(start.equals("1")){
             menu_up=false;
             dispose();
-            if(sock_type=="NIO")
-                 gameStateManager.push(new PlayState(gameStateManager,batch,sock,sel,players,myFd));
-            if(sock_type=="IO")
-                gameStateManager.push(new PlayState(gameStateManager,batch,ioSocket,sel,players,myFd));
+            gameStateManager.push(new PlayState(gameStateManager,batch,ioSocket,sel,players,myFd));
         }
 
 
@@ -210,46 +205,7 @@ public class MenuState extends State {
 
     }
 
-    private void tryConnectAsyncNio(){
-        if(!isConnecting){
-            isConnecting=true;
-        text.setColor(1.0f,1.0f,0.0f,1.0f);
-        status="Trwa łączenie";
 
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-
-                try {
-                    sel= Selector.open();
-                    sock=SocketChannel.open(new InetSocketAddress("192.168.0.110",22222));
-                    sock.configureBlocking(false);
-                    sockKey = sock.register(sel, SelectionKey.OP_READ);
-                    readServerMyFdNio();
-                    text.setColor(0.0f,1.0f,0.0f,1.0f);
-
-                    connectButton.remove();
-                    stage.addActor(rdyBottun);
-                    status="Połączono";
-
-                } catch (IOException e) {
-                    text.setColor(1.0f,0.0f,0.0f,1.0f);
-                    status="Błąd: "+e.getMessage();
-                    isConnecting=false;
-
-                }
-                // post a Runnable to the rendering thread that processes the result
-                /*Gdx.app.postRunnable(new Runnable() {
-                    @Override
-                    public void run() {
-                    //todo uruchomienie stanu gry
-
-                    }
-                });*/
-            }
-        }).start();
-        }
-    }
 
     private void tryConnectAsyncIo(){
         if(!isConnecting){
@@ -296,29 +252,7 @@ public class MenuState extends State {
         }
     }
 
-    private void readServer(){
 
-
-        try {
-
-            sel.select();
-            Set<SelectionKey> keySet = sel.selectedKeys();
-            Iterator<SelectionKey> keyIterator = keySet.iterator();
-
-            while(keyIterator.hasNext()) {
-                SelectionKey currentKey = keyIterator.next();
-                keyIterator.remove();
-                if(currentKey.isValid() && currentKey.isReadable()){
-                    readFromSocket(currentKey);
-                }
-
-            }
-
-        } catch (Throwable e) {
-            e.printStackTrace();
-            //todo exception handling
-        }
-    }
 
     private void readServerIo(){
 
@@ -372,34 +306,7 @@ public class MenuState extends State {
         }
     }
 
-    private void readServerMyFdNio(){
 
-
-        try {
-            ByteBuffer bb = ByteBuffer.allocate(256);
-            sel.select();
-            if(sel.selectedKeys().size() == 1 && sel.selectedKeys().iterator().next() == sockKey){
-
-                bb.clear();
-                int count = sock.read(bb);
-                if(count == -1) {
-                    sockKey.cancel();
-                    throw new IOException("Nie udało sięusatlić Fd");
-                }
-
-                sel.selectedKeys().clear();
-
-                bb.flip();
-                CharBuffer charBuffer = StandardCharsets.UTF_8.decode(bb);
-                String result = charBuffer.toString();
-
-                myFd=result;
-            }
-        } catch (Throwable e) {
-            e.printStackTrace();
-            //todo exception handling
-        }
-    }
 
     private void readServerMyFdIo() throws Exception {
 
@@ -425,27 +332,7 @@ public class MenuState extends State {
         }
     }
 
-    private void readFromSocket(SelectionKey key) throws IOException {
-        ByteBuffer bb = ByteBuffer.allocate(256);
-        bb.clear();
-        SocketChannel sc = (SocketChannel) key.channel();
-        int count = sc.read(bb);
-
-        if(count == -1) {
-           key.cancel();
-            return;
-        }
-
-
-        bb.flip();
-        CharBuffer charBuffer = StandardCharsets.UTF_8.decode(bb);
-        String result = charBuffer.toString();
-
-
-        updatePlayerList(result);
-        showPlayersList();
-
-    }
+   
 
     private void updatePlayerList(String result){
 
@@ -471,10 +358,7 @@ public class MenuState extends State {
         if(!ready){
             try {
                 String msg="1 0 0";
-                if(sock_type=="NIO")
-                    sock.write(ByteBuffer.wrap(msg.getBytes()));
-                if(sock_type=="IO")
-                    ioSocket.getOutputStream().write(msg.getBytes());
+                ioSocket.getOutputStream().write(msg.getBytes());
                 ready=true;
                 rdyBottun.remove();
                 stage.addActor(rdyBottun2);
@@ -486,10 +370,8 @@ public class MenuState extends State {
         }else {
             try {
                 String msg="0 0 0";
-                if(sock_type=="NIO")
-                    sock.write(ByteBuffer.wrap(msg.getBytes()));
-                if(sock_type=="IO")
-                    ioSocket.getOutputStream().write(msg.getBytes());
+
+                ioSocket.getOutputStream().write(msg.getBytes());
                 ready=false;
                 rdyBottun.remove();
                 stage.addActor(rdyBottun);
@@ -560,20 +442,12 @@ public class MenuState extends State {
             public void run() {
                 int count=1;
                 while(menu_up){
-                    if(sock_type=="IO"){
 
-                        if(ioSocket !=null)
-                            if(ioSocket.isConnected()){
-                                readServerIo();
-                            }
-                    }
-                    if(sock_type=="NIO"){
+                    if(ioSocket !=null)
+                        if(ioSocket.isConnected()){
+                            readServerIo();
+                        }
 
-                        if(sock !=null)
-                            if(sock.isConnected()){
-                                readServer();
-                            }
-                    }
 
                     try {
                         sleep(40);
