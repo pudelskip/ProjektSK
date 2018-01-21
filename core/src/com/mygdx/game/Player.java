@@ -75,7 +75,7 @@ public class Player extends Actor {
     public void update(float dt, Map map){
         movement.scl(dt);
         position.add(movement);
-        if(checkCollision(map))
+        if(checkCollision(map, movement))
            position.sub(movement);
 
         movement.set(0,0,0);
@@ -97,7 +97,7 @@ public class Player extends Actor {
     }
 
 
-    private boolean checkCollision(Map map){
+    private boolean checkCollision(Map map, Vector3 movement){
         int offset = map.getOffset();
         int tailSize = map.getTile_size();
         int playerIndexX=(int)(position.x-offset+width/2)/tailSize;
@@ -106,39 +106,47 @@ public class Player extends Actor {
         testY=playerIndexY;
 
         //Top center
-        if(map.getField((9-playerIndexY)-1,playerIndexX)==1)
-            if(position.y+height>=(playerIndexY+1)*tailSize)
-                return true;
+        if(movement.y > 0)
+            if(map.getField((9-playerIndexY)-1,playerIndexX)!=0)
+                if(position.y+height>=(playerIndexY+1)*tailSize)
+                    return true;
 
         //Top left
-        if(map.getField((9-playerIndexY)-1,playerIndexX-1)==1)
-            if(position.x<=(playerIndexX)*tailSize+offset && position.y+height>=(playerIndexY+1)*tailSize)
-                return true;
+        if(movement.y > 0 || movement.x < 0)
+            if(map.getField((9-playerIndexY)-1,playerIndexX-1)!=0)
+                if(position.x<=(playerIndexX)*tailSize+offset && position.y+height>=(playerIndexY+1)*tailSize)
+                    return true;
 
         //Top right
-        if(map.getField((9-playerIndexY)-1,playerIndexX+1)==1)
-            if(position.x+width>=(playerIndexX+1)*tailSize+offset && position.y+height>=(playerIndexY+1)*tailSize)
-                return true;
+        if(movement.y > 0 || movement.x > 0)
+            if(map.getField((9-playerIndexY)-1,playerIndexX+1)!=0)
+                if(position.x+width>=(playerIndexX+1)*tailSize+offset && position.y+height>=(playerIndexY+1)*tailSize)
+                    return true;
         //Left
-        if(map.getField((9-playerIndexY),playerIndexX-1)==1)
-            if(position.x<=(playerIndexX)*tailSize+offset)
-        return true;
+        if(movement.x < 0)
+            if(map.getField((9-playerIndexY),playerIndexX-1)!=0)
+                if(position.x<=(playerIndexX)*tailSize+offset)
+            return true;
         //Right
-        if(map.getField((9-playerIndexY),playerIndexX+1)==1)
-            if(position.x+width>=(playerIndexX+1)*tailSize+offset)
-                return true;
+        if(movement.x > 0)
+            if(map.getField((9-playerIndexY),playerIndexX+1)!=0)
+                if(position.x+width>=(playerIndexX+1)*tailSize+offset)
+                    return true;
         //Bottom center
-        if(map.getField((9-playerIndexY)+1,playerIndexX)==1)
-            if(position.y<=(playerIndexY)*tailSize)
-                return true;
+        if(movement.y < 0)
+            if(map.getField((9-playerIndexY)+1,playerIndexX)!=0)
+                if(position.y<=(playerIndexY)*tailSize)
+                    return true;
         //Bottom left
-        if(map.getField((9-playerIndexY)+1,playerIndexX-1)==1)
-            if(position.x<=(playerIndexX)*tailSize+offset && position.y<=(playerIndexY)*tailSize)
-                return true;
+        if(movement.y < 0 || movement.x < 0)
+            if(map.getField((9-playerIndexY)+1,playerIndexX-1)!=0)
+                if(position.x<=(playerIndexX)*tailSize+offset && position.y<=(playerIndexY)*tailSize)
+                    return true;
         //Bottom right
-        if(map.getField((9-playerIndexY)+1,playerIndexX+1)==1)
-            if(position.x+width>=(playerIndexX+1)*tailSize+offset && position.y<=(playerIndexY)*tailSize)
-                return true;
+        if(movement.y < 0 || movement.x > 0)
+            if(map.getField((9-playerIndexY)+1,playerIndexX+1)!=0)
+                if(position.x+width>=(playerIndexX+1)*tailSize+offset && position.y<=(playerIndexY)*tailSize)
+                    return true;
 
 
         return false;

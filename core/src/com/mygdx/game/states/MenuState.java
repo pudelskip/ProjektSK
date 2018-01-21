@@ -1,6 +1,8 @@
 package com.mygdx.game.states;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
+import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
@@ -19,12 +21,10 @@ import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.nio.CharBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -41,22 +41,26 @@ import static java.lang.Thread.sleep;
 
 public class MenuState extends State {
 
+    private static final String CONFIG_FILE = "config.txt";
+
     int as=0;
-    String status;
-    TextActor text;
-    Skin skin;
-    Table playerList;
-    Table menuTable;
-    boolean isConnecting;
-    boolean ready;
-    String start;
-    String sock_type="";
-    boolean menu_up;
+    private String status;
+    private TextActor text;
+    private Skin skin;
+    private Table playerList;
+    private Table menuTable;
+    private  boolean isConnecting;
+    private boolean ready;
+    private String start;
+    private String sock_type="";
+    private boolean menu_up;
+    private String address;
+    private int port = 0;
 
 
-    ConnectButton connectButton;
-    RdyButton rdyBottun;
-    RdyButton rdyBottun2;
+    private ConnectButton connectButton;
+    private RdyButton rdyBottun;
+    private RdyButton rdyBottun2;
 
     public class MyActor extends Actor {
         Texture texture = new Texture("board.png");
@@ -103,10 +107,23 @@ public class MenuState extends State {
             setBounds(actorX,actorY,texture.getWidth(),texture.getHeight());
             addListener(new InputListener(){
                 public boolean touchDown (InputEvent event, float x, float y, int pointer, int button) {
-                    if(sock_type=="NIO")
-                        tryConnectAsyncNio();
-                    if(sock_type=="IO")
-                        tryConnectAsyncIo();
+                    if(isConnecting)
+                        return true;
+                    Gdx.input.getTextInput(new Input.TextInputListener(){
+                        @Override
+                        public void input(String text) {
+                            address = text;
+                            if(sock_type=="NIO")
+                                tryConnectAsyncNio();
+                            if(sock_type=="IO")
+                                tryConnectAsyncIo();
+                        }
+
+                        @Override
+                        public void canceled() {
+                            address = null;
+                        }
+                    }, "Podaj adres ip serwera", address, "");
                     return true;
                 }
             });
@@ -158,6 +175,11 @@ public class MenuState extends State {
         super(gsm,sb,sock);
         sock_type="IO";
         initAll();
+        try {
+            fetchConfig();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
@@ -222,7 +244,7 @@ public class MenuState extends State {
 
                 try {
                     sel= Selector.open();
-                    sock=SocketChannel.open(new InetSocketAddress("192.168.0.110",22222));
+                    sock=SocketChannel.open(new InetSocketAddress(address, port));
                     sock.configureBlocking(false);
                     sockKey = sock.register(sel, SelectionKey.OP_READ);
                     readServerMyFdNio();
@@ -256,30 +278,36 @@ public class MenuState extends State {
             isConnecting=true;
             text.setColor(1.0f,1.0f,0.0f,1.0f);
             status="Trwa łączenie";
+            text.setText(status);
 
             new Thread(new Runnable() {
                 @Override
                 public void run() {
                     String addMsg="";
                     try {
-                        ioSocket = new Socket("192.168.0.110", 22222);
+                        ioSocket = new Socket();
+                        ioSocket.connect(new InetSocketAddress(address, port), 5000);
                         readServerMyFdIo();
                         text.setColor(0.0f,1.0f,0.0f,1.0f);
 
                         connectButton.remove();
                         stage.addActor(rdyBottun);
                         status="Polaczono";
+                        text.setText(status);
                         createRcvThread();
 
                     } catch (IOException e) {
-                        disconnectSocketIo();
+
                         text.setColor(1.0f,0.0f,0.0f,1.0f);
                         status="Blad - "+e.getMessage()+" "+addMsg;
+                        text.setText(status);
                         isConnecting=false;
+                        disconnectSocketIo();
 
                     } catch (Exception e) {
                         text.setColor(1.0f,0.0f,0.0f,1.0f);
                         status="Blad - "+e.getMessage();
+                        text.setText(status);
                         isConnecting=false;
 
                     }
@@ -384,7 +412,7 @@ public class MenuState extends State {
                 int count = sock.read(bb);
                 if(count == -1) {
                     sockKey.cancel();
-                    throw new IOException("Nie udało sięusatlić Fd");
+                    throw new IOException("Nie udało się usatlić Fd");
                 }
 
                 sel.selectedKeys().clear();
@@ -522,7 +550,7 @@ public class MenuState extends State {
 
     private void initAll(){
         Gdx.input.setInputProcessor(stage);
-        this.skin = new Skin(Gdx.files.internal("data/uiskin.json"));
+//        this.skin = new Skin(Gdx.files.internal("uiskin.json"));
 
         this.connectButton = new ConnectButton(new Texture("conn.png"));
         this.rdyBottun = new RdyButton(new Texture("rdy1.png"));
@@ -592,11 +620,44 @@ public class MenuState extends State {
 
     private void disconnectSocketIo(){
         try {
-            ioSocket.close();
+            if(ioSocket != null)
+                ioSocket.close();
         } catch (IOException e) {
             text.setColor(1.0f,0.0f,0.0f,1.0f);
             status="Blad - Gniazdo juz rozlaczone";
             isConnecting=false;
+        }
+    }
+
+    private void fetchConfig() throws IOException{
+        FileHandle fileConfig = Gdx.files.internal(CONFIG_FILE);
+        String fileString = fileConfig.readString();
+        String ls = System.getProperty("line.separator");
+        String []elements = fileString.split(ls);
+        if(elements.length < 2)
+            return;
+        String line;
+        int index;
+        line = elements[0];
+        if (line != null){
+            if(line.contains("ip")){
+                index = line.indexOf(":");
+                if(index > 0) {
+                    line = line.substring(index + 1).trim();
+                    address = line;
+                }
+            }
+        }
+        line = elements[1];
+        if(line != null){
+            if(line.contains("port")){
+                index = line.indexOf(":");
+                if(index > 0){
+                    line = line.substring(index + 1).trim();
+                    if(line.length() > 0)
+                        port = Integer.valueOf(line);
+                }
+            }
         }
     }
 }
