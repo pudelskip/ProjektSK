@@ -52,7 +52,9 @@ public class Player extends Actor {
     public void setModel(){
         this.model = new Texture("badlogic.jpg");
     }
-
+    public void setModel(String path){
+        this.model = new Texture(path);
+    }
 
     public Player(){
         this.position = new Vector3(640,200,0);

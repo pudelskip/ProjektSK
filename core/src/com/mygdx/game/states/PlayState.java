@@ -524,7 +524,7 @@ public class PlayState extends State {
 
 
         map.setFields(testmap);
-        player.setModel();
+        player.setModel("badlogic1.png");
         player.setPosX(x);
         player.setPosY(y);
         for(java.util.Map.Entry<String, PlayerEntry> splayer: players.entrySet()){
