@@ -454,7 +454,13 @@ public class MenuState extends State {
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
+                    Gdx.app.postRunnable(new Runnable() {
+                        @Override
+                        public void run() {
+                            showPlayersList();
 
+                        }
+                    });
 
                 }
 
