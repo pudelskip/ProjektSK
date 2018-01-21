@@ -496,7 +496,7 @@ public class PlayState extends State {
         loseText = new MyActor(new Texture("lose.png"));
         winText = new MyActor(new Texture("win.png"));
         tieText = new MyActor(new Texture("tie.png"));
-        serverDeadText = new MyActor(new Texture("exit.png"));
+        serverDeadText = new MyActor(new Texture("con-lost.png"));
         exitButton = new ExitButton(new Texture("exit.png"));
         bg_h = bg.getHeight();
         bg_w = bg.getWidth();
