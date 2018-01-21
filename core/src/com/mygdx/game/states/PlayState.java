@@ -2,6 +2,7 @@ package com.mygdx.game.states;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
@@ -58,6 +59,7 @@ public class PlayState extends State {
     private MyButton buttonRight;
     private MyButton bombButton;
     private TextActor textActor;
+    private TextActor bomb_count;
     private MyActor loseText;
     private MyActor winText;
     private MyActor tieText;
@@ -140,16 +142,27 @@ public class PlayState extends State {
     public class TextActor extends Actor {
         BitmapFont font;
         String text;
+        float x;
+        float y;
 
         public TextActor(String text) {
             this.text = text;
             font = new BitmapFont();
             font.setColor(1.0f,0.0f,0.0f,1);
+            x=10.0f;
+            y=700.0f;
+        }
+        public TextActor(String text, float x, float y, Color c) {
+            this.text = text;
+            font = new BitmapFont();
+            font.setColor(c);
+            this.x=x;
+            this.y=y;
         }
 
         @Override
         public void draw(Batch batch, float alpha){
-            font.draw(batch,"Status: "+text,10,700);
+            font.draw(batch,text,x,y);
         }
 
 
@@ -240,7 +253,7 @@ public class PlayState extends State {
             handleServerNotResponding();
             return;
         }
-        textActor.setText(String.valueOf(bombs));
+        bomb_count.setText("Bomby:"+String.valueOf(bombs));
         if(in_game){
             time += deltaTime;
             bomb_place_time += deltaTime;
@@ -480,6 +493,7 @@ public class PlayState extends State {
         map= new Map();
         bg= new Texture("sprites/bg.png");
         textActor=new TextActor("");
+        bomb_count = new TextActor("",1100,700,new Color(1.0f,1.0f,1.0f,1.0f));
 
 
         buttonDown = new MyButton(new Texture("arrowD.png"),1090,270);
@@ -527,6 +541,7 @@ public class PlayState extends State {
         stage.addActor(bombButton);
         stage.addActor(textActor);
         stage.addActor(player);
+        stage.addActor(bomb_count);
         bomb=false;
         in_game=true;
         game_up=true;
