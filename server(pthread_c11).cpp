@@ -215,8 +215,8 @@ void printPl(){
     bool first;
     auto time_since_half = std::chrono::high_resolution_clock::now();
     auto time_to_wait = 5;
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wmissing-noreturn"
+//#pragma clang diagnostic push
+//#pragma clang diagnostic ignored "-Wmissing-noreturn"
     while(true){
         bool reset=false;
         std::this_thread::sleep_for(std::chrono::milliseconds(80));
@@ -349,14 +349,13 @@ void printPl(){
              reset_game();
 
     }
-#pragma clang diagnostic pop
+//#pragma clang diagnostic pop
 }
 
 //odebranie wiadomosci od klientow
 void readb(){
     std::string s;
     char buffer[1024];
-    bool ready_to_play;
     int count;
 
 
@@ -388,7 +387,6 @@ void readb(){
                 //sprawdzenie czy pierwsza liczba to 2 (pod�o�enia bomby)
                 if (result[0].find("2") != std::string::npos && start){
 
-                    int coords[2];
                     int y_b= 9-static_cast<int>((strtof(result[2].c_str(),0)+25)/72);
                     int x_b= static_cast<int>((strtof(result[1].c_str(),0)+25-280)/72);
                     if(game_map[y_b][x_b]!=2){
@@ -522,8 +520,8 @@ void ctrl_c(int){
 
 void acceptPlayer(){
 
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wmissing-noreturn"
+//#pragma clang diagnostic push
+//#pragma clang diagnostic ignored "-Wmissing-noreturn"
     while(true){
         bool can_connect=true;
         sockaddr_in clientAddr{0};
@@ -579,5 +577,5 @@ void acceptPlayer(){
             printf("new connection from: %s:%hu (fd: %d)\n", inet_ntoa(clientAddr.sin_addr), ntohs(clientAddr.sin_port), clientFd);
         }
     }
-#pragma clang diagnostic pop
+//#pragma clang diagnostic pop
 }
