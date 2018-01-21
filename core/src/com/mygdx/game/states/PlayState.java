@@ -176,15 +176,13 @@ public class PlayState extends State {
     public PlayState(GameStateManager gsm, SpriteBatch batch, SocketChannel sock, Selector sel, HashMap<String, PlayerEntry> pls, String fd) {
 
         super(gsm,batch,sock,sel,pls,fd);
-        sock_type="NIO";
-        initAll();
+        initAll(0.0f,0.0f);
     }
 
-    public PlayState(GameStateManager gsm, SpriteBatch batch, Socket sock, Selector sel, HashMap<String, PlayerEntry> pls, String fd) {
+    public PlayState(GameStateManager gsm, SpriteBatch batch, Socket sock, Selector sel, HashMap<String, PlayerEntry> pls, String fd, float myX, float myY) {
 
         super(gsm,batch,sock,sel,pls,fd);
-        sock_type="IO";
-        initAll();
+        initAll(myX,myY);
     }
 
     @Override
@@ -290,10 +288,8 @@ public class PlayState extends State {
             }
 
             String msg=action+" "+String.valueOf(posX)+" "+String.valueOf(posY);
-            if(sock_type=="NIO")
-                sock.write(ByteBuffer.wrap(msg.getBytes()));
-            if(sock_type=="IO")
-                ioSocket.getOutputStream().write(msg.getBytes());
+
+            ioSocket.getOutputStream().write(msg.getBytes());
 
 
     }
@@ -369,7 +365,6 @@ public class PlayState extends State {
                     end = true;
                 }
             }
-
            updatePlayerList(result);
             if(result.length() > 0)
                 return true;
@@ -415,7 +410,6 @@ public class PlayState extends State {
                 stage.addActor(exitButton);
                 in_game=false;
                 player.remove();
-                player.setPosX(0);
                 textActor.setText("RIP");
                 game_up = false;
                 disconnectSocketIo();
@@ -472,7 +466,7 @@ public class PlayState extends State {
         }
     }
 
-    private void initAll(){
+    private void initAll(float x, float y){
         Gdx.input.setInputProcessor(stage);
         Timer.schedule(new Timer.Task(){
             @Override
@@ -517,6 +511,8 @@ public class PlayState extends State {
 
         map.setFields(testmap);
         player.setModel();
+        player.setPosX(x);
+        player.setPosY(y);
         for(java.util.Map.Entry<String, PlayerEntry> splayer: players.entrySet()){
             if(!splayer.getKey().equals(myFd))
                 splayer.getValue().player.setModel();
@@ -549,16 +545,9 @@ public class PlayState extends State {
                     try {
                         sendPosition(player.getPosX(),player.getPosY());
                         sleep(10);
-                        if(sock_type=="NIO") {
-                            boolean newData = readServer();
-                            if(newData)
-                                lastUpdateTime = currentTime;
-                        }
-                        if(sock_type=="IO") {
-                            boolean newData = readServerIo();
-                            if(newData)
-                                lastUpdateTime = currentTime;
-                        }
+                        boolean newData = readServerIo();
+                        if(newData)
+                            lastUpdateTime = currentTime;
                     } catch (IOException e) {
                         connected = false;
                         server_up = false;
