@@ -43,32 +43,34 @@ public class MenuState extends State {
 
     private static final String CONFIG_FILE = "config.txt";
 
-    int as=0;
+    int as = 0;
     private String status;
     private TextActor text;
     private Skin skin;
     private Table playerList;
     private Table menuTable;
-    private  boolean isConnecting;
+    private boolean isConnecting;
     private boolean ready;
     private String start;
-    private String sock_type="";
+    private String sock_type = "";
     private boolean menu_up;
     private String address;
     private int port = 0;
-    float myX=0.0f;
-    float myY=0.0f;
+    float myX = 0.0f;
+    float myY = 0.0f;
 
 
     private ConnectButton connectButton;
     private RdyButton rdyBottun;
     private RdyButton rdyBottun2;
+    private ExitButton exitButton;
 
     public class MyActor extends Actor {
         Texture texture = new Texture("board.png");
+
         @Override
-        public void draw(Batch batch, float alpha){
-            batch.draw(texture,0,0);
+        public void draw(Batch batch, float alpha) {
+            batch.draw(texture, 0, 0);
         }
     }
 
@@ -79,39 +81,40 @@ public class MenuState extends State {
         public TextActor(String text) {
             this.text = text;
             font = new BitmapFont();
-            font.setColor(1.0f,0.0f,0.0f,1);
+            font.setColor(1.0f, 0.0f, 0.0f, 1);
         }
 
         @Override
-        public void draw(Batch batch, float alpha){
-            font.draw(batch,"Status: "+text,10,700);
+        public void draw(Batch batch, float alpha) {
+            font.draw(batch, "Status: " + text, 10, 700);
         }
 
 
         public void setText(String text) {
             this.text = text;
         }
-        public void setColor(float r, float g, float b, float a){
-            font.setColor(r,g,b,a);
+
+        public void setColor(float r, float g, float b, float a) {
+            font.setColor(r, g, b, a);
         }
     }
 
-    private class ConnectButton extends Actor{
+    private class ConnectButton extends Actor {
 
 
         Texture texture;
-        float actorX,actorY;
+        float actorX, actorY;
 
         public ConnectButton(Texture tex) {
-            actorX=1000;
-            actorY=600;
-            texture= tex;
-            setBounds(actorX,actorY,texture.getWidth(),texture.getHeight());
-            addListener(new InputListener(){
-                public boolean touchDown (InputEvent event, float x, float y, int pointer, int button) {
-                    if(isConnecting)
+            actorX = 1000;
+            actorY = 600;
+            texture = tex;
+            setBounds(actorX, actorY, texture.getWidth(), texture.getHeight());
+            addListener(new InputListener() {
+                public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
+                    if (isConnecting)
                         return true;
-                    Gdx.input.getTextInput(new Input.TextInputListener(){
+                    Gdx.input.getTextInput(new Input.TextInputListener() {
                         @Override
                         public void input(String text) {
                             address = text;
@@ -129,25 +132,25 @@ public class MenuState extends State {
         }
 
         @Override
-        public void draw(Batch batch, float alpha){
-            batch.draw(texture,actorX,actorY);
+        public void draw(Batch batch, float alpha) {
+            batch.draw(texture, actorX, actorY);
         }
 
     }
 
-    private class RdyButton extends Actor{
+    private class RdyButton extends Actor {
 
 
         Texture texture;
-        float actorX,actorY;
+        float actorX, actorY;
 
         public RdyButton(Texture tex) {
-            actorX=1000;
-            actorY=600;
-            texture= tex;
-            setBounds(actorX,actorY,texture.getWidth(),texture.getHeight());
-            addListener(new InputListener(){
-                public boolean touchDown (InputEvent event, float x, float y, int pointer, int button) {
+            actorX = 1000;
+            actorY = 600;
+            texture = tex;
+            setBounds(actorX, actorY, texture.getWidth(), texture.getHeight());
+            addListener(new InputListener() {
+                public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
                     setReady();
 
                     return true;
@@ -156,21 +159,61 @@ public class MenuState extends State {
         }
 
         @Override
-        public void draw(Batch batch, float alpha){
-            batch.draw(texture,actorX,actorY);
+        public void draw(Batch batch, float alpha) {
+            batch.draw(texture, actorX, actorY);
         }
 
     }
 
+    private class ExitButton extends Actor {
 
 
-    public MenuState(GameStateManager gsm, SpriteBatch sb, SocketChannel sock){
-        super(gsm,sb,sock);
-       initAll();
+        Texture texture;
+        float actorX, actorY;
+        private ExitButton selfReference;
+
+        public ExitButton(Texture tex) {
+            actorX = 1000;
+            actorY = 400;
+            texture = tex;
+            selfReference = this;
+            setBounds(actorX, actorY, texture.getWidth(), texture.getHeight());
+            addListener(new InputListener() {
+                public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
+                    status = "Opuszczono poczekalnie";
+                    selfReference.remove();
+                    exitLobby();
+                    return true;
+                }
+            });
+        }
+
+        @Override
+        public void draw(Batch batch, float alpha) {
+            batch.draw(texture, actorX, actorY);
+        }
+
     }
 
-    public MenuState(GameStateManager gsm, SpriteBatch sb, Socket sock){
-        super(gsm,sb,sock);
+    private void exitLobby() {
+        menu_up = false;
+        disconnectSocketIo();
+        text.setColor(1.0f, 0.0f, 0.0f, 1.0f);
+        text.setText(status);
+        isConnecting = false;
+        rdyBottun.remove();
+        stage.addActor(connectButton);
+        playerList.clear();
+    }
+
+
+    public MenuState(GameStateManager gsm, SpriteBatch sb, SocketChannel sock) {
+        super(gsm, sb, sock);
+        initAll();
+    }
+
+    public MenuState(GameStateManager gsm, SpriteBatch sb, Socket sock) {
+        super(gsm, sb, sock);
         initAll();
         try {
             fetchConfig();
@@ -181,7 +224,7 @@ public class MenuState extends State {
 
     @Override
     public void handleInput() {
-        if(Gdx.input.justTouched()){
+        if (Gdx.input.justTouched()) {
 
             //gameStateManager.push(new PlayState(gameStateManager,batch,sock));
             //dispose();
@@ -197,16 +240,15 @@ public class MenuState extends State {
     @Override
     public void update(float deltaTime) {
 
-       // text.setText(status);
+        // text.setText(status);
         handleInput();
 
 
-        if(start.equals("1")){
-            menu_up=false;
+        if (start.equals("1")) {
+            menu_up = false;
             dispose();
-            gameStateManager.push(new PlayState(gameStateManager,batch,ioSocket,sel,players,myFd,myX,myY));
+            gameStateManager.push(new PlayState(gameStateManager, batch, ioSocket, sel, players, myFd, myX, myY));
         }
-
 
 
     }
@@ -215,7 +257,7 @@ public class MenuState extends State {
     public void render() {
 
 
-            stage.draw();
+        stage.draw();
 
 
     }
@@ -227,42 +269,42 @@ public class MenuState extends State {
     }
 
 
-
-    private void tryConnectAsyncIo(){
-        if(!isConnecting){
-            isConnecting=true;
-            text.setColor(1.0f,1.0f,0.0f,1.0f);
-            status="Trwa łączenie";
+    private void tryConnectAsyncIo() {
+        if (!isConnecting) {
+            isConnecting = true;
+            text.setColor(1.0f, 1.0f, 0.0f, 1.0f);
+            status = "Trwa łączenie";
             text.setText(status);
 
             new Thread(new Runnable() {
                 @Override
                 public void run() {
-                    String addMsg="";
+                    String addMsg = "";
                     try {
                         ioSocket = new Socket();
                         ioSocket.connect(new InetSocketAddress(address, port), 5000);
                         readServerMyFdIo();
-                        text.setColor(0.0f,1.0f,0.0f,1.0f);
+                        text.setColor(0.0f, 1.0f, 0.0f, 1.0f);
 
                         connectButton.remove();
                         stage.addActor(rdyBottun);
-                        status="Polaczono";
+                        status = "Polaczono";
                         text.setText(status);
+                        stage.addActor(exitButton);
                         createRcvThread();
 
                     } catch (IOException e) {
-                        text.setColor(1.0f,0.0f,0.0f,1.0f);
-                        status="Blad - "+e.getMessage()+" "+addMsg;
+                        text.setColor(1.0f, 0.0f, 0.0f, 1.0f);
+                        status = "Blad - " + e.getMessage() + " " + addMsg;
                         text.setText(status);
-                        isConnecting=false;
+                        isConnecting = false;
                         disconnectSocketIo();
 
                     } catch (Exception e) {
-                        text.setColor(1.0f,0.0f,0.0f,1.0f);
-                        status="Blad - "+e.getMessage();
+                        text.setColor(1.0f, 0.0f, 0.0f, 1.0f);
+                        status = "Blad - " + e.getMessage();
                         text.setText(status);
-                        isConnecting=false;
+                        isConnecting = false;
 
                     }
                     // post a Runnable to the rendering thread that processes the result
@@ -279,13 +321,12 @@ public class MenuState extends State {
     }
 
 
-
-    private void readServerIo(){
+    private void readServerIo() {
 
 
         try {
-            boolean end=false;
-            String result ="";
+            boolean end = false;
+            String result = "";
             byte[] messageByte = new byte[1000];
             DataInputStream in = new DataInputStream(ioSocket.getInputStream());
             int bytesRead = 0;
@@ -294,20 +335,18 @@ public class MenuState extends State {
             messageByte[1] = in.readByte();
             messageByte[2] = in.readByte();
             ByteBuffer byteBuffer = ByteBuffer.wrap(messageByte, 0, 3);
-            String v = new String(byteBuffer.array()).substring(0,3);
+            String v = new String(byteBuffer.array()).substring(0, 3);
             int bytesToRead = Integer.valueOf(v);
 
-            while(!end)
-            {
+            while (!end) {
                 in.readFully(messageByte, 0, bytesToRead);
                 result = new String(messageByte, 0, bytesToRead);
-                if ( result.length() == bytesToRead )
-                {
+                if (result.length() == bytesToRead) {
                     end = true;
                 }
             }
             updatePlayerList(result);
-          //  showPlayersList();
+            //  showPlayersList();
 
 /*
             InputStream is = ioSocket.getInputStream();
@@ -319,19 +358,16 @@ public class MenuState extends State {
             }
             String result = new String(bytearr).substring(0,count);
 */
-           // updatePlayerList(result);
-           // showPlayersList();
+            // updatePlayerList(result);
+            // showPlayersList();
 
 
         } catch (Throwable e) {
-
-            disconnectSocketIo();
-            text.setColor(1.0f,0.0f,0.0f,1.0f);
-            status="Blad - "+e.getMessage();
-            isConnecting=false;
+            if (!status.equals("Opuszczono poczekalnie"))
+                status = "Blad - " + e.getMessage();
+            exitLobby();
         }
     }
-
 
 
     private void readServerMyFdIo() throws Exception {
@@ -341,20 +377,20 @@ public class MenuState extends State {
             InputStream is = ioSocket.getInputStream();
             byte[] bytearr = new byte[256];
             int count = is.read(bytearr);
-            if(count == -1) {
+            if (count == -1) {
 
                 throw new IOException("Nie udało sięusatlić Fd");
             }
-            String result = new String(bytearr).substring(0,count);
+            String result = new String(bytearr).substring(0, count);
             String[] data = result.split(";");
 
-            if(data[0].contains("-1"))
+            if (data[0].contains("-1"))
                 throw new Exception("Serwer jest pelen");
-            if(data[0].contains("-2"))
+            if (data[0].contains("-2"))
                 throw new Exception("Aktualnie trwa gra");
             myX = Float.valueOf(data[1]);
             myY = Float.valueOf(data[2]);
-            myFd=data[0];
+            myFd = data[0];
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -363,8 +399,7 @@ public class MenuState extends State {
     }
 
 
-
-    private void updatePlayerList(String result){
+    private void updatePlayerList(String result) {
 
         players.clear();
 
@@ -385,11 +420,11 @@ public class MenuState extends State {
     }
 
     private void setReady() {
-        if(!ready){
+        if (!ready) {
             try {
-                String msg="1 0 0";
+                String msg = "1 0 0";
                 ioSocket.getOutputStream().write(msg.getBytes());
-                ready=true;
+                ready = true;
                 rdyBottun.remove();
                 stage.addActor(rdyBottun2);
 
@@ -397,11 +432,11 @@ public class MenuState extends State {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-        }else {
+        } else {
             try {
-                String msg="0 0 0";
+                String msg = "0 0 0";
                 ioSocket.getOutputStream().write(msg.getBytes());
-                ready=false;
+                ready = false;
                 rdyBottun.remove();
                 stage.addActor(rdyBottun);
 
@@ -413,31 +448,32 @@ public class MenuState extends State {
         }
     }
 
-    private void showPlayersList(){
+    private void showPlayersList() {
         playerList.clear();
-        for(Map.Entry<String, PlayerEntry> splayer: players.entrySet()){
-            String me="";
-            if(splayer.getValue().name.equals(myFd))
-                me=" (ja)";
-            Label placeholder = new Label("-> Gracz"+splayer.getValue().name+me,skin);
+        for (Map.Entry<String, PlayerEntry> splayer : players.entrySet()) {
+            String me = "";
+            if (splayer.getValue().name.equals(myFd))
+                me = " (ja)";
+            Label placeholder = new Label("-> Gracz" + splayer.getValue().name + me, skin);
             placeholder.setFontScale(2.0f);
-            if(splayer.getValue().ready==1)
-                placeholder.setColor(0.0f,1.0f,0.0f,1.0f);
+            if (splayer.getValue().ready == 1)
+                placeholder.setColor(0.0f, 1.0f, 0.0f, 1.0f);
             else
-                placeholder.setColor(1.0f,1.0f,0.0f,1.0f);
+                placeholder.setColor(1.0f, 1.0f, 0.0f, 1.0f);
             playerList.add(placeholder).bottom().padTop(10.0f).padLeft(20.0f);
             playerList.row();
         }
     }
 
 
-    private void initAll(){
+    private void initAll() {
         Gdx.input.setInputProcessor(stage);
         this.skin = new Skin(Gdx.files.internal("data/uiskin.json"));
 
         this.connectButton = new ConnectButton(new Texture("conn.png"));
         this.rdyBottun = new RdyButton(new Texture("rdy1.png"));
         this.rdyBottun2 = new RdyButton(new Texture("rdy2.png"));
+        this.exitButton = new ExitButton(new Texture("exit.png"));
         this.connectButton.setTouchable(Touchable.enabled);
 
         this.menuTable = new Table(skin);
@@ -445,37 +481,40 @@ public class MenuState extends State {
 
 
         this.status = "Rozłączono";
-        this.isConnecting=false;
-        this.ready=false;
-        this.start="0";
+        this.isConnecting = false;
+        this.ready = false;
+        this.start = "0";
 
         this.text = new TextActor(status);
 
         stage.addActor(text);
         stage.addActor(connectButton);
         stage.addActor(menuTable);
-       // this.menuTable.setDebug(true);
-      //  this.playerList.setDebug(true);
+        // this.menuTable.setDebug(true);
+        //  this.playerList.setDebug(true);
         this.menuTable.setFillParent(true);
 
-        this.menuTable.add(playerList).expand().top().left().pad(100.0f,20.0f,100.0f,600.0f);
+        this.menuTable.add(playerList).expand().top().left().pad(100.0f, 20.0f, 100.0f, 600.0f);
 
 
     }
 
-    private void createRcvThread(){
-        menu_up=true;
+    private void createRcvThread() {
+        menu_up = true;
         Thread recv;
-        recv =new Thread(new Runnable() {
+        recv = new Thread(new Runnable() {
             @Override
             public void run() {
-                int count=1;
-                while(menu_up){
+                while (menu_up) {
 
-                    if(ioSocket !=null)
-                        if(ioSocket.isConnected()){
+                    if (ioSocket != null) {
+                        if (ioSocket.isClosed())
+                            break;
+                        if (ioSocket.isConnected()) {
                             readServerIo();
                         }
+                    } else
+                        break;
 
 
                     try {
@@ -486,7 +525,8 @@ public class MenuState extends State {
                     Gdx.app.postRunnable(new Runnable() {
                         @Override
                         public void run() {
-                            showPlayersList();
+                            if(menu_up)
+                                showPlayersList();
 
                         }
                     });
@@ -499,43 +539,45 @@ public class MenuState extends State {
         recv.start();
     }
 
-    private void disconnectSocketIo(){
+    private void disconnectSocketIo() {
         try {
-            if(ioSocket != null)
+            if (ioSocket != null) {
                 ioSocket.close();
+            }
         } catch (IOException e) {
-            text.setColor(1.0f,0.0f,0.0f,1.0f);
-            status="Blad - Gniazdo juz rozlaczone";
-            isConnecting=false;
+            text.setColor(1.0f, 0.0f, 0.0f, 1.0f);
+            status = "Blad - Gniazdo juz rozlaczone";
+            text.setText(status);
+            isConnecting = false;
         }
     }
 
-    private void fetchConfig() throws IOException{
+    private void fetchConfig() throws IOException {
         FileHandle fileConfig = Gdx.files.internal(CONFIG_FILE);
         String fileString = fileConfig.readString();
         String ls = System.getProperty("line.separator");
-        String []elements = fileString.split(ls);
-        if(elements.length < 2)
+        String[] elements = fileString.split(ls);
+        if (elements.length < 2)
             return;
         String line;
         int index;
         line = elements[0];
-        if (line != null){
-            if(line.contains("ip")){
+        if (line != null) {
+            if (line.contains("ip")) {
                 index = line.indexOf(":");
-                if(index > 0) {
+                if (index > 0) {
                     line = line.substring(index + 1).trim();
                     address = line;
                 }
             }
         }
         line = elements[1];
-        if(line != null){
-            if(line.contains("port")){
+        if (line != null) {
+            if (line.contains("port")) {
                 index = line.indexOf(":");
-                if(index > 0){
+                if (index > 0) {
                     line = line.substring(index + 1).trim();
-                    if(line.length() > 0)
+                    if (line.length() > 0)
                         port = Integer.valueOf(line);
                 }
             }
