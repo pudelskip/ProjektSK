@@ -29,17 +29,19 @@ public:
     int status;
     float x;
     float y;
+    int coord_idx;
 
    PlayerEntry(int s);
-   PlayerEntry(int s,float xp,float yp);
+   PlayerEntry(int s,float xp,float yp, int c);
 };
 PlayerEntry::PlayerEntry(int s){
     status=s;
 }
-PlayerEntry::PlayerEntry(int s, float xp, float yp){
+PlayerEntry::PlayerEntry(int s, float xp, float yp, int c){
     status=s;
     x=xp;
     y=yp;
+    coord_idx=c;
 }
 
 int init_map[10][10] ={
@@ -54,8 +56,15 @@ int init_map[10][10] ={
 		{1, 0, 0, 0, 0, 0, 0, 0, 0, 1} ,
 		{1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
 };
+//350,590 ; 860,590  ; 860,80 ; 350,80
 int game_map[10][10];
-
+int init_coords[4][3]={
+		{350,590,0} ,
+		{860,590,0} ,
+		{860,80,0} ,
+		{350,80,0}
+};
+int p_coords[4][3];
 std::string players[4];
 std::map<int, PlayerEntry*> Players;
 bool start =false;
@@ -86,6 +95,7 @@ void acceptPlayer();
 void reset_game(){
 	std::cout<<"reset"<<std::endl;
 	memcpy(game_map,init_map,sizeof(init_map));
+	memcpy(p_coords,init_coords,sizeof(init_coords));
 	players_alive=0;
     Players.clear();
 
@@ -247,8 +257,11 @@ void printPl(){
 
     	//jesli tak i jest iles graczy to start
 
-    	if(ready_to_play && Players.size()>1 && !reset)
+    	if(ready_to_play && Players.size()>1 && !reset){
+
     		start=true;
+    	}
+
 
     	//dodanie komunikaty ze start lub nie
         if(start)
@@ -270,6 +283,7 @@ void printPl(){
         for (std::pair<int, PlayerEntry*> plr : Players){
             if(plr.second->status==8){
             	std::cout<<"usunieto"<<plr.first<<std::endl;
+            	p_coords[plr.second->coord_idx][2]=0;
             	Players.erase(plr.first);
             	players_alive-=1;
             	 }
@@ -305,6 +319,7 @@ void printPl(){
         	}else{
             Players.erase(plr.first);
             std::cout<<"usunieto"<<plr.first<<w<<std::endl;
+            p_coords[plr.second->coord_idx][2]=0;
             players_alive-=1;
         	}
         }
@@ -346,7 +361,7 @@ void readb(){
                 count = read(events[i].data.fd, buffer, 1024);
                 if(count>0){
                     s.assign(buffer,count);
-                    //std::cout<<s<<std::endl;
+                    std::cout<<s<<std::endl;
                     std::istringstream iss(s);
                     std::vector<std::string> result(std::istream_iterator<std::string>{iss},std::istream_iterator<std::string>());
                     int plr_fd= events[i].data.fd;
@@ -494,7 +509,9 @@ void acceptPlayer(){
         auto clientFd = accept(servFd, (sockaddr*) &clientAddr, &clientAddrSize);
         if(clientFd == -1) error(1, errno, "accept failed");
 
+
         auto id = std::to_string(clientFd);
+
 
         if(Players.size()>=4){
         	can_connect=false;
@@ -504,8 +521,12 @@ void acceptPlayer(){
                 	can_connect=false;
                 	id="-2";
                 }
+        int coord_idx=0;
+        while(p_coords[coord_idx][2]!=0 && coord_idx<4){
+        	coord_idx+=1;
+        }
+        id=id +";"+std::to_string(p_coords[coord_idx][0])+";"+std::to_string(p_coords[coord_idx][1]);
         ///Wys³anie numeru FD klientowi
-
         int w =write(clientFd,  id.c_str(), sizeof(char)*id.size());
 
         if(w<0){
@@ -513,6 +534,7 @@ void acceptPlayer(){
              std::cout<<"B³¹d po³¹czenia z "<<clientFd<<std::endl;
         }
         else if(can_connect){
+       p_coords[coord_idx][2]=1;
         linger lin;
         unsigned int y=sizeof(lin);
         lin.l_onoff=1;
@@ -520,7 +542,7 @@ void acceptPlayer(){
         setsockopt(clientFd,SOL_SOCKET, SO_LINGER,(void*)(&lin), y);
 
 
-        Players.insert(std::make_pair(clientFd, new PlayerEntry(0,350,80)));
+        Players.insert(std::make_pair(clientFd, new PlayerEntry(0,p_coords[coord_idx][0],p_coords[coord_idx][1],coord_idx)));
         players_alive+=1;
         ev.events = EPOLLIN;
         ev.data.fd = clientFd;

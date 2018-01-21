@@ -175,14 +175,14 @@ public class PlayState extends State {
 
         super(gsm,batch,sock,sel,pls,fd);
 
-        initAll();
+        initAll(0.0f,0.0f);
     }
 
-    public PlayState(GameStateManager gsm, SpriteBatch batch, Socket sock, Selector sel, HashMap<String, PlayerEntry> pls, String fd) {
+    public PlayState(GameStateManager gsm, SpriteBatch batch, Socket sock, Selector sel, HashMap<String, PlayerEntry> pls, String fd, float myX, float myY) {
 
         super(gsm,batch,sock,sel,pls,fd);
 
-        initAll();
+        initAll(myX,myY);
     }
 
     @Override
@@ -401,7 +401,7 @@ public class PlayState extends State {
                 stage.addActor(exitButton);
                 in_game=false;
                 player.remove();
-                player.setPosX(0);
+                ;
                 textActor.setText("RIP");
                 game_up = false;
                 disconnectSocketIo();
@@ -459,7 +459,7 @@ public class PlayState extends State {
         }
     }
 
-    private void initAll(){
+    private void initAll(float x, float y){
         Gdx.input.setInputProcessor(stage);
         Timer.schedule(new Timer.Task(){
             @Override
@@ -503,6 +503,8 @@ public class PlayState extends State {
 
         map.setFields(testmap);
         player.setModel();
+        player.setPosX(x);
+        player.setPosY(y);
         for(java.util.Map.Entry<String, PlayerEntry> splayer: players.entrySet()){
             if(!splayer.getKey().equals(myFd))
                 splayer.getValue().player.setModel();

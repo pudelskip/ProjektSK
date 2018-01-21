@@ -52,6 +52,8 @@ public class MenuState extends State {
     String start;
     String sock_type="";
     boolean menu_up;
+    float myX=0.0f;
+    float myY=0.0f;
 
 
     ConnectButton connectButton;
@@ -183,7 +185,7 @@ public class MenuState extends State {
         if(start.equals("1")){
             menu_up=false;
             dispose();
-            gameStateManager.push(new PlayState(gameStateManager,batch,ioSocket,sel,players,myFd));
+            gameStateManager.push(new PlayState(gameStateManager,batch,ioSocket,sel,players,myFd,myX,myY));
         }
 
 
@@ -320,11 +322,15 @@ public class MenuState extends State {
                 throw new IOException("Nie udało sięusatlić Fd");
             }
             String result = new String(bytearr).substring(0,count);
-            if(result.contains("-1"))
+            String[] data = result.split(";");
+
+            if(data[0].contains("-1"))
                 throw new Exception("Serwer jest pelen");
-            if(result.contains("-2"))
+            if(data[0].contains("-2"))
                 throw new Exception("Aktualnie trwa gra");
-            myFd=result;
+            myX = Float.valueOf(data[1]);
+            myY = Float.valueOf(data[2]);
+            myFd=data[0];
 
         } catch (IOException e) {
             e.printStackTrace();

@@ -60,6 +60,8 @@ public class Player extends Actor {
         this.height=50;
         this.width=50;
     }
+
+
     public Player(Player p){
         this.position = p.position;
         this.movement = p.movement;
