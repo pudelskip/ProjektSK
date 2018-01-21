@@ -95,6 +95,7 @@ void setReuseAddr(int sock);
 void acceptPlayer();
 
 void reset_game(){
+
     std::cout<<"reset"<<std::endl;
     memcpy(game_map,init_map,sizeof(init_map));
     memcpy(p_coords, init_coords, sizeof(init_coords));
@@ -150,7 +151,7 @@ void bomb(int x, int y){
                     auto it = Players.find(plr_coords[m][0]);
                     it->second->status=3;
                     std::cout<<"gracz "<<std::endl;
-                    players_alive-=1;
+                    //players_alive-=1;
                 }
             }
             if(game_map[x+k][y+l]==4){
@@ -220,7 +221,7 @@ void printPl(){
         bool reset=false;
         std::this_thread::sleep_for(std::chrono::milliseconds(80));
 
-
+        std::cout<<players_alive<<" | "<<start<<std::endl;
         if(players_alive==0 && start ){
             for (std::pair<int, PlayerEntry*> plr : Players){
                 plr.second->status=5;
@@ -299,7 +300,7 @@ void printPl(){
         }
         for (std::pair<int, PlayerEntry*> plr : Players){
             if(plr.second->status==8){
-                std::cout<<"usunieto"<<plr.first<<std::endl;
+                std::cout<<"usunieto z gry "<<plr.first<<std::endl;
                 p_coords[plr.second->coord_idx][2] = 0;
                 Players.erase(plr.first);
                 players_alive-=1;
@@ -328,23 +329,24 @@ void printPl(){
 
 
             int w =write(plr.first,  players_string.c_str(), sizeof(char)*players_string.size());
-            std::cout<<count<<"|"<<players_string<<std::endl;
+           // std::cout<<count<<"|"<<players_string<<std::endl;
 
             if(w!=count+3){
                 if(start){
                     plr.second->status=8;
                 }else{
                     Players.erase(plr.first);
-                    std::cout<<"usunieto"<<plr.first<<w<<std::endl;
+                    std::cout<<"usunieto z lobby "<<plr.first<<w<<std::endl;
                     players_alive-=1;
                 }
             }
-            if(reset)
-                reset_game();
+
             //std::cout<<"wyslano "<<plr.first<<"|"<<players_string<<std::endl;
 
         }
 
+        if(reset)
+             reset_game();
 
     }
 #pragma clang diagnostic pop

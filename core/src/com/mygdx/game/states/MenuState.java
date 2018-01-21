@@ -433,7 +433,7 @@ public class MenuState extends State {
 
     private void initAll(){
         Gdx.input.setInputProcessor(stage);
-        this.skin = new Skin(Gdx.files.internal("uiskin.json"));
+        this.skin = new Skin(Gdx.files.internal("data/uiskin.json"));
 
         this.connectButton = new ConnectButton(new Texture("conn.png"));
         this.rdyBottun = new RdyButton(new Texture("rdy1.png"));
