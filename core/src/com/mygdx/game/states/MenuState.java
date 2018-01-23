@@ -373,15 +373,31 @@ public class MenuState extends State {
     private void readServerMyFdIo() throws Exception {
 
 
-        try {
-            InputStream is = ioSocket.getInputStream();
-            byte[] bytearr = new byte[256];
-            int count = is.read(bytearr);
-            if (count == -1) {
 
-                throw new IOException("Nie udało sięusatlić Fd");
+            boolean end = false;
+            String result = "";
+            byte[] messageByte = new byte[1000];
+            DataInputStream in = new DataInputStream(ioSocket.getInputStream());
+            int bytesRead = 0;
+
+            messageByte[0] = in.readByte();
+            messageByte[1] = in.readByte();
+            messageByte[2] = in.readByte();
+            ByteBuffer byteBuffer = ByteBuffer.wrap(messageByte, 0, 3);
+            String v = new String(byteBuffer.array()).substring(0, 3);
+            int bytesToRead = Integer.valueOf(v);
+
+            while (!end) {
+                in.readFully(messageByte, 0, bytesToRead);
+                result = new String(messageByte, 0, bytesToRead);
+                if (result.length() == bytesToRead) {
+                    end = true;
+                }
             }
-            String result = new String(bytearr).substring(0, count);
+
+
+            result = result.substring(0, bytesToRead);
+
             String[] data = result.split(";");
 
             if (data[0].contains("-1"))
@@ -392,10 +408,7 @@ public class MenuState extends State {
             myY = Float.valueOf(data[2]);
             myFd = data[0];
 
-        } catch (IOException e) {
-            e.printStackTrace();
-            //todo exception handling
-        }
+
     }
 
 

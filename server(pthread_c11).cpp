@@ -34,9 +34,7 @@ public:
     PlayerEntry(int s);
     PlayerEntry(int s,float xp,float yp, int c);
 };
-PlayerEntry::PlayerEntry(int s){
-    status=s;
-}
+
 PlayerEntry::PlayerEntry(int s, float xp, float yp, int c){
     status=s;
     x=xp;
@@ -83,8 +81,7 @@ std::unordered_set<int> clientFds;
 // handles SIGINT
 void ctrl_c(int);
 
-// sends data to clientFds excluding fd
-void sendToAllBut(int fd, char * buffer, int count);
+
 
 // converts cstring to port
 uint16_t readPort(char * txt);
@@ -96,7 +93,7 @@ void acceptPlayer();
 
 void reset_game(){
 
-    std::cout<<"reset"<<std::endl;
+    std::cout<<"Reset"<<std::endl;
     memcpy(game_map,init_map,sizeof(init_map));
     memcpy(p_coords, init_coords, sizeof(init_coords));
     players_alive=0;
@@ -150,7 +147,7 @@ void bomb(int x, int y){
                 if(plr_coords[m][1]==x+k && plr_coords[m][2]==y+l){
                     auto it = Players.find(plr_coords[m][0]);
                     it->second->status=3;
-                    std::cout<<"gracz "<<std::endl;
+                    std::cout<<"gracz trafiony"<<std::endl;
                     //players_alive-=1;
                 }
             }
@@ -221,7 +218,7 @@ void printPl(){
         bool reset=false;
         std::this_thread::sleep_for(std::chrono::milliseconds(80));
 
-        std::cout<<players_alive<<" | "<<start<<std::endl;
+        //std::cout<<players_alive<<" | "<<start<<std::endl;
         if(players_alive==0 && start ){
             for (std::pair<int, PlayerEntry*> plr : Players){
                 plr.second->status=5;
@@ -545,7 +542,24 @@ void acceptPlayer(){
         while(p_coords[coord_idx][2] != 0 && coord_idx < 4){
             coord_idx++;
         }
+
         id = id + ";" + std::to_string(p_coords[coord_idx][0]) + ";" + std::to_string(p_coords[coord_idx][1]);
+
+        int count =sizeof(char)*id.size();
+                int temp_count= count;
+                int add_z =3;
+
+                while(temp_count>0 || add_z>0){
+                    int rem = temp_count%10;
+                    if(temp_count==0)
+                        id = std::to_string(0)+id;
+                    else
+                        id = std::to_string(rem)+id;
+                    temp_count = temp_count/10;
+                    add_z-=1;
+                }
+
+
         ///Wys�anie numeru FD klientowi
 
         int w =write(clientFd,  id.c_str(), sizeof(char)*id.size());

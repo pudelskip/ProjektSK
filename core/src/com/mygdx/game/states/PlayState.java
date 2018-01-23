@@ -542,6 +542,17 @@ public class PlayState extends State {
         stage.addActor(textActor);
         stage.addActor(player);
         stage.addActor(bomb_count);
+        bombButton.addListener(new InputListener(){
+            public boolean touchDown (InputEvent event, float x, float y, int pointer, int button) {
+                if(bombs>0 && bomb_place_time>0.2){
+                    bomb_place_time=0;
+                    bombs -= 1;
+
+                    bomb=true;
+                }
+                return true;
+            }
+        });
         bomb=false;
         in_game=true;
         game_up=true;
